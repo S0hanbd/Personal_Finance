@@ -6,3 +6,4 @@ export function PlannedSpendingPage() {
     </div>
   )
 }
+

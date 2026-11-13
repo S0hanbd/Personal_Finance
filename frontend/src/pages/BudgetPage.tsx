@@ -6,3 +6,4 @@ export function BudgetPage() {
     </div>
   )
 }
+

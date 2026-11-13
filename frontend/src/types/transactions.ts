@@ -47,3 +47,4 @@ export interface CreateTransactionRequest {
   description?: string
   transaction_date: string
 }
+

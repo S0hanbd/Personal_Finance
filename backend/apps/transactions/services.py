@@ -166,3 +166,4 @@ def reconcile_account(account: FinancialAccount) -> Decimal:
     acc.current_balance = balance
     acc.save(update_fields=['current_balance', 'updated_at'])
     return balance
+

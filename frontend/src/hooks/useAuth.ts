@@ -21,3 +21,4 @@ export function useAuth() {
 
   return { user, isAuthenticated, login, register, logout }
 }
+

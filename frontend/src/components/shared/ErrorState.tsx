@@ -23,3 +23,4 @@ export function ErrorState({ title = 'Something went wrong', message, onRetry }:
     </div>
   )
 }
+

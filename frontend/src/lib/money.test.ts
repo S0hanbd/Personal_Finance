@@ -30,3 +30,4 @@ describe('money utilities (decimal.js precision)', () => {
     expect(total.toFixed(2)).toBe('14000.00')
   })
 })
+
