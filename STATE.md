@@ -35,7 +35,10 @@
 | Phase | Description | Status |
 |:---:|---|:---:|
 | **Phase 1** | Environment Bootstrapping, Harness, Quality Gates & Scaffolding | **COMPLETED & VERIFIED** |
-| **Phase 2** | Core Financial Ledger (Accounts, Transactions, Transfers, Balances) | **UP NEXT** |
+| **Phase 2A** | Backend Financial Ledger Services, Atomic Balance Calculations & Tests | **COMPLETED & VERIFIED** |
+| **Phase 2B** | Frontend Quick Add Transaction Dialog & Category/Source UI | **UP NEXT** |
+| **Phase 2C** | Frontend Transactions History Table (Filterable, Responsive) | Pending |
+| **Phase 2D** | Frontend Accounts Overview & Transfer Modal | Pending |
 | **Phase 3** | Recurring Bills & Future Financial Obligations | Pending |
 | **Phase 4** | Monthly Budget Management & Planned Purchases | Pending |
 | **Phase 5** | Lending, Borrowing & Person Management | Pending |
@@ -53,7 +56,7 @@
 2. **Account Balances Derived From Ledger:**
    - Account current balance is derived from:
      $$\text{Balance} = \text{Opening} + \text{Income} + \text{Transfers In} + \text{Borrowed} + \text{Loan Collections} - \text{Expenses} - \text{Transfers Out} - \text{Lent} - \text{Repayments} - \text{Held Returned}$$
-   - Cached `current_balance` on `FinancialAccount` is updated atomically in database transactions whenever ledger entries are created, updated, or deleted.
+   - Cached `current_balance` on `FinancialAccount` is updated atomically in database transactions via `apps/transactions/services.py` (`select_for_update()`).
 3. **Transfers & Loans Never Mixed with Income/Expense:**
    - Account transfers move money between accounts without altering net worth or appearing in income/expense reports.
    - Lending is an asset exchange, not an expense.
@@ -64,52 +67,31 @@
 
 ---
 
-## 4. Phase 2 Detailed Implementation Plan (Next Agent Starts Here)
+## 4. Immediate Next Step for Incoming Agent: Session 2B
 
-### Goal:
-Build a fully operational, mathematically consistent personal financial ledger with account balance calculations, transaction entry, category/source management, and a responsive transactions table.
+### Objective:
+Build the frontend transaction entry mechanism — the **Quick Add Modal** and category/source selection.
 
-### Step 2.1 — Backend Ledger Business Logic (`backend/apps/transactions/` & `backend/apps/accounts/`)
-1. **Atomic Balance Updates via Signals or Service Layer:**
-   - When an `income` Transaction is created: `account.current_balance += amount`.
-   - When an `expense` Transaction is created: `account.current_balance -= amount`.
-   - When an `AccountTransfer` is created: `source_account.current_balance -= amount` and `dest_account.current_balance += amount` (wrapped in `@transaction.atomic`).
-   - On edit/delete: safely reverse prior amount from old account and apply new amount to new account.
-2. **Account Balance Recalculate Endpoint:**
-   - Provide an audit/reconciliation service `POST /api/accounts/{id}/reconcile/` that recomputes balance strictly from opening balance + ledger.
-3. **Ledger Query & Filtering:**
-   - `GET /api/transactions/`: filter by `account_id`, `transaction_type`, `category_id`, `income_source_id`, `start_date`, `end_date`, `search` (in description).
-4. **Backend Unit Tests:**
-   - Write comprehensive tests in `apps/transactions/tests.py` and `apps/accounts/tests.py` verifying:
-     - Scenarios 1, 2, 3 from Requirements spec:
-       - Scenario 1: Initial opening balances (Cash: ৳2,500, Bank: ৳10,000, PayCash: ৳1,500 = Total ৳14,000).
-       - Scenario 2: Income of ৳5,000 into Cash -> Cash becomes ৳7,500, Total becomes ৳19,000.
-       - Scenario 3: Transfer ৳3,000 from Bank to Cash -> Bank ৳7,000, Cash ৳10,500, Total unchanged.
-     - Edit/Delete rollback correctness.
+### Key Files to Work On:
+1. `frontend/src/lib/api.ts` (Ensure auth headers and response data types are cleanly typed)
+2. `frontend/src/components/transactions/QuickAddModal.tsx`:
+   - 3 required fields:
+     - Amount (`string`, formatted with 2 decimal places, positive)
+     - Transaction Type (`income` / `expense`) + Category or Income Source
+     - Account dropdown
+   - Optional fields:
+     - Description (text)
+     - Transaction Date (defaults to today's date YYYY-MM-DD, editable)
+   - State matrix:
+     - Submitting / pending state (disables submit button to prevent double-click)
+     - Actionable error alert on failure with retry
+     - On success: invalidates TanStack Query caches for `['accounts']` and `['transactions']` and closes modal.
+3. Wire the Quick Add button into `frontend/src/components/layout/Header.tsx` or `AppLayout.tsx` so it is accessible from anywhere.
 
-### Step 2.2 — Frontend Ledger UI (`frontend/src/`)
-1. **API Service Layer & TanStack Queries:**
-   - Query hooks for accounts list, transactions list (with URL search params for pagination & filters), categories, and sources.
-2. **Quick Add Transaction Modal (`frontend/src/components/transactions/QuickAddModal.tsx`):**
-   - Three required fields: **Amount**, **Type & Category/Source**, **Account**.
-   - Date defaults to today (editable).
-   - Description is optional.
-3. **Transactions History Table (`frontend/src/pages/TransactionsPage.tsx`):**
-   - Table with Date, Type badge, Account, Category/Source, Description, Amount (green for income, red for expense, neutral for transfer).
-   - Filter bar: Date range picker, Type dropdown, Account dropdown, Category dropdown, Search box.
-   - Full 8-state handling: skeleton rows during loading, empty state with "Add your first transaction" CTA, error state with retry.
-4. **Accounts Page (`frontend/src/pages/AccountsPage.tsx`):**
-   - Account cards displaying current balance, type, and quick transfer action.
-
-### Step 2.3 — Quality Gates & Verification
-Before considering Phase 2 complete:
-- [ ] Run `python manage.py check` -> must pass with 0 errors.
-- [ ] Run `ruff check .` -> must pass.
-- [ ] Run `pytest` -> all financial balance calculation tests must pass.
-- [ ] Run `pnpm typecheck` -> must pass with 0 errors.
-- [ ] Run `pnpm lint` -> must pass.
-- [ ] Run `pnpm test` -> all unit tests must pass.
-- [ ] Run `pnpm run build` -> production build must succeed.
+### Quality Gate Check Before Session 2B Sign-off:
+- Run `pnpm.cmd typecheck` (must pass with 0 errors)
+- Run `pnpm.cmd lint` (must pass)
+- Run `pnpm.cmd test` (must pass)
 
 ---
 
