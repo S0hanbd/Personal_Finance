@@ -15,14 +15,21 @@ import { cn } from '@/lib/utils'
 interface QuickAddModalProps {
   isOpen: boolean
   onClose: () => void
+  initialTab?: 'expense' | 'income' | 'transfer'
+  initialAccountId?: string
 }
 
 type TabType = 'expense' | 'income' | 'transfer'
 
-export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('expense')
+export function QuickAddModal({
+  isOpen,
+  onClose,
+  initialTab = 'expense',
+  initialAccountId,
+}: QuickAddModalProps) {
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab)
   const [amount, setAmount] = useState('')
-  const [accountId, setAccountId] = useState<string>('')
+  const [accountId, setAccountId] = useState<string>(initialAccountId ?? '')
   const [destinationAccountId, setDestinationAccountId] = useState<string>('')
   const [categoryId, setCategoryId] = useState<string>('')
   const [incomeSourceId, setIncomeSourceId] = useState<string>('')
@@ -63,13 +70,15 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
     }
   }, [accounts, accountId, destinationAccountId])
 
-  // Focus on amount input when dialog opens
+  // Reset and focus on amount input when dialog opens
   useEffect(() => {
     if (isOpen) {
       setErrorMessage(null)
+      if (initialTab) setActiveTab(initialTab)
+      if (initialAccountId) setAccountId(initialAccountId)
       setTimeout(() => amountInputRef.current?.focus(), 50)
     }
-  }, [isOpen])
+  }, [isOpen, initialTab, initialAccountId])
 
   // Escape key handler
   useEffect(() => {

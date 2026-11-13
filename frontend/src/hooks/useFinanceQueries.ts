@@ -115,7 +115,7 @@ export function useCreateIncomeSource() {
 export function useCreateAccount() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: { name: string; account_type: string; opening_balance: string }): Promise<FinancialAccount> => {
+    mutationFn: async (payload: { name: string; account_type: string; opening_balance: string; description?: string }): Promise<FinancialAccount> => {
       const res = await api.post('/accounts/', payload)
       return res.data
     },
@@ -124,4 +124,18 @@ export function useCreateAccount() {
     },
   })
 }
+
+export function useReconcileAccount() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (accountId: number): Promise<{ status: string; current_balance: string }> => {
+      const res = await api.post(`/accounts/${accountId}/reconcile/`)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+    },
+  })
+}
+
 
