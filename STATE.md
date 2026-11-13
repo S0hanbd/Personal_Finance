@@ -13,7 +13,9 @@
 * **Default Currency:** BDT (৳) | **Timezone:** Asia/Dhaka
 * **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui tokens + Recharts
 * **Backend:** Django 5 + Django REST Framework + PostgreSQL / SQLite (for local checks)
-* **Git Status:** Clean, root commit created, Phase 1 committed.
+* **Git Remote:** `https://github.com/S0hanbd/Personal_Finance.git` (tracked on `main`)
+* **Mandatory Rule:** At the end of every session, commit all changes, update STATE.md, and push to `git push origin main`.
+* **Git Status:** Clean, all commits synced with `origin/main`.
 
 ### Windows Environment Execution Commands
 > [!IMPORTANT]
