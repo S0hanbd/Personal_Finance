@@ -6,3 +6,4 @@ from rest_framework.permissions import IsAuthenticated
 @permission_classes([IsAuthenticated])
 def placeholder(request):
     return Response([])
+
