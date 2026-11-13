@@ -22,3 +22,4 @@ export interface ObligationSummaryResponse {
   total_paid: string
   pending_count: number
 }
+

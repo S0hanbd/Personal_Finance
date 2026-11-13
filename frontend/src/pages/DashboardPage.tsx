@@ -15,6 +15,7 @@ import { useAccounts } from '@/hooks/useFinanceQueries'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useCurrentMonthBills } from '@/hooks/useBillsQueries'
 import { useObligationSummary } from '@/hooks/useObligationsQueries'
+import { useBudgetPerformance } from '@/hooks/useBudgetQueries'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 import { formatMoney, sumMoney, subtractMoney } from '@/lib/money'
 import type { Transaction } from '@/types'
@@ -64,6 +65,11 @@ export function DashboardPage() {
     isLoading: obligationLoading,
   } = useObligationSummary()
 
+  const {
+    data: budgetData,
+    isLoading: budgetLoading,
+  } = useBudgetPerformance()
+
   // Compute metrics with Decimal.js (NEVER floating-point)
   const activeAccounts = useMemo(() => accounts.filter((a) => a.status === 'active'), [accounts])
 
@@ -103,7 +109,7 @@ export function DashboardPage() {
     return (recentTxData?.results ?? []).slice(0, 5)
   }, [recentTxData])
 
-  const isGlobalLoading = accountsLoading || txLoading || billsLoading || obligationLoading
+  const isGlobalLoading = accountsLoading || txLoading || billsLoading || obligationLoading || budgetLoading
   const hasError = accountsError || txError
 
   const openQuickAdd = (tab: 'expense' | 'income' | 'transfer') => {
@@ -214,6 +220,25 @@ export function DashboardPage() {
           value={formatMoney(pendingObligations)}
           subtitle={`${obligationData?.pending_count ?? 0} pending commitment${(obligationData?.pending_count ?? 0) !== 1 ? 's' : ''}`}
           variant="default"
+          isLoading={isGlobalLoading}
+        />
+        <SummaryCard
+          title="Budget Remaining"
+          value={budgetData?.has_budget ? formatMoney(budgetData.remaining_budget) : 'Unset'}
+          subtitle={
+            budgetData?.has_budget
+              ? `${budgetData.percentage_used}% used of ${formatMoney(budgetData.budget_limit)} ceiling`
+              : 'No monthly ceiling configured'
+          }
+          variant={
+            !budgetData?.has_budget
+              ? 'default'
+              : budgetData.status === 'exceeded'
+              ? 'danger'
+              : budgetData.status === 'warning'
+              ? 'warning'
+              : 'success'
+          }
           isLoading={isGlobalLoading}
         />
       </div>

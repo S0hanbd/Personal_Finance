@@ -41,3 +41,4 @@ export interface CurrentMonthBillsResponse {
   paid_total: string
   results: RecurringExpenseOccurrence[]
 }
+

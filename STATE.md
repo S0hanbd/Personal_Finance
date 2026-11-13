@@ -39,44 +39,52 @@
 | **Phase 1** | Environment Bootstrapping, Harness, Quality Gates & Scaffolding | **COMPLETED & VERIFIED** |
 | **Phase 2** | Financial Ledger, Quick Add, Transactions Table, Accounts & Dashboard | **COMPLETED & VERIFIED** |
 | **Phase 3** | Recurring Bills, Fixed Expenses & Future Financial Obligations | **COMPLETED & VERIFIED** |
-| **Phase 4** | Monthly Budget Management & Planned Purchases | **UP NEXT** |
-| **Phase 5** | Lending, Borrowing & Person Management | Pending |
+| **Phase 4** | Monthly Budget Management & Planned Purchases | **COMPLETED & VERIFIED** |
+| **Phase 5** | Lending, Borrowing & Person Management | **UP NEXT** |
 | **Phase 6** | Financial Analytics, Reports & Recharts | Pending |
 | **Phase 7** | Independent Project Finance Workspace | Pending |
 | **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | Pending |
 
 ---
 
-## 3. Detailed Progress Summary (Phase 3 Completed)
+## 3. Detailed Progress Summary (Phase 4 Completed)
 
-### Phase 3 Accomplishments:
-1. **Recurring Expenses & Fixed Bills Backend (`apps/bills/`):**
-   - Models: `RecurringExpense` and `RecurringExpenseOccurrence` with unique constraint on `(recurring_expense, period)` to prevent duplicate occurrences.
-   - Core Invariant Preserved: Generating occurrences NEVER deducts money from accounts; deduction occurs only upon explicit payment.
-   - `pay_bill_occurrence`: Atomic transaction that records an expense transaction, decrements account balance, and links transaction.
-   - Auto-detection of overdue bills when `due_date < today`.
-   - Dedicated endpoints: `GET /api/bills/occurrences/current-month/` (auto-generates current month occurrences with summary of unpaid/paid totals), `POST /api/bills/occurrences/{id}/pay/`.
-2. **Future Financial Obligations Backend (`apps/obligations/`):**
-   - Models: `FinancialObligation` with priority (`urgent`, `high`, `medium`, `low`), due dates, and statuses (`pending`, `paid`, `overdue`).
-   - `pay_obligation`: Atomic settlement that records an expense transaction and marks obligation as paid.
-   - Endpoints: `GET /api/obligations/summary/` (pending total and count), `POST /api/obligations/{id}/pay/`.
-3. **Backend Unit Tests:**
-   - 23/23 tests passing (including 4 new bill tests and 3 new obligation tests verifying zero deduction on occurrence generation, atomic balance deduction on payment, prevention of double payments, and overdue checks).
-4. **Frontend Recurring Bills (`BillsPage.tsx` & `useBillsQueries.ts`):**
-   - Summary cards: Unpaid This Month, Paid This Month, Active Bill Rules.
-   - Two-tab layout: This Month's Bills & Recurring Rules.
-   - "Mark as Paid" modal: Account selection (pre-selected with preferred account), payment date, notes.
-   - "New Recurring Bill" modal with frequency, due day (1-31), category, preferred account.
-   - Full 8-state matrix implemented.
-5. **Frontend Future Obligations (`ObligationsPage.tsx` & `useObligationsQueries.ts`):**
-   - Summary cards: Total Pending Obligations, Total Settled, Status Filter pills.
-   - Interactive table with priority badges, dynamic timeline/days-remaining countdowns.
-   - "Mark Paid" modal with account deduction.
-   - "Add Future Obligation" modal.
-6. **Dashboard Live Financial Integration (`DashboardPage.tsx`):**
-   - Integrated "Unpaid Fixed Expenses" card with real-time bill occurrence totals.
-   - Integrated "Remaining After Fixed Expenses" (`Total Liquid Balance - Unpaid Fixed Bills`) using `decimal.js`.
-   - Integrated "Future Obligations" card with pending count.
+### Phase 4 Accomplishments:
+1. **Monthly Budget Backend (`apps/budgets/`):**
+   - Models:
+     - `MonthlyBudget`: `(user, year, month, total_amount, notes)` with unique constraint on `(user, year, month)`.
+     - `BudgetCategory`: `(budget, category, allocated_amount)` with unique constraint on `(budget, category)`.
+     - `PlannedPurchase`: `(user, name, estimated_amount, target_date, category, priority, status, notes, purchased_transaction, purchased_at)`.
+   - Variable Spending Calculation:
+     - `calculate_budget_performance(user, year, month)` differentiates variable expenses from recurring bills (`bill_occurrence__isnull=True`), preventing double counting.
+     - Threshold status classification: Normal (`<80%`), Warning (`80%–100%`), Exceeded (`>100%`).
+     - Category-by-category breakdown computation with allocated vs. actual variable spend.
+   - Settle Planned Purchase Service:
+     - `settle_planned_purchase`: Atomically creates an expense transaction in the selected account, reduces balance, and marks item as purchased.
+   - Endpoints:
+     - `GET /api/budgets/monthly/performance/?year=&month=`
+     - `POST /api/budgets/monthly/` (with nested category allocations)
+     - `GET /api/budgets/planned-purchases/` (supports `status` and `priority` filters)
+     - `POST /api/budgets/planned-purchases/{id}/purchase/`
+2. **Backend Unit Tests:**
+   - 26/26 backend pytest cases passing across accounts, authentication, bills, obligations, budgets, and transactions.
+   - Verified threshold transitions, exclusion of recurring bill occurrences, and double-settlement prevention.
+3. **Frontend Monthly Budget Management (`BudgetPage.tsx` & `useBudgetQueries.ts`):**
+   - Month/Year selector with quick previous/next navigation and "This Month" jump.
+   - 4 summary cards: Monthly Budget Limit, Variable Spent, Budget Remaining (with status pill), and Fixed Recurring Bills.
+   - Visual health progress gauge with color coding: Emerald (`<80%`), Amber (`80%–99%`), Rose (`≥100%`).
+   - Category breakdown list with individual progress meters and status badges.
+   - "Configure Monthly Budget" modal with dynamic category allocation inputs and validation.
+   - Full 8-state matrix (`default`, `hover`, `focus-visible`, `active`, `disabled`, `loading` skeleton, `error` retry, `empty`).
+4. **Frontend Planned Spending (`PlannedSpendingPage.tsx`):**
+   - Summary cards: Total Planned In-Flight, Ready to Buy, Saving Up, Settled Purchased.
+   - Filter bar: status pills (`All`, `Planned`, `Saving Up`, `Ready to Buy`, `Purchased`, `Cancelled`) + Priority dropdown.
+   - Planned item cards with target date countdowns (overdue, today, days remaining), priority badges, and notes.
+   - Lifecycle action transitions (`Start Saving`, `Mark Ready`, `Buy & Deduct`).
+   - "Complete Planned Purchase" modal with account selection and atomic deduction.
+   - "Add Planned Purchase" modal.
+5. **Dashboard Live Integration (`DashboardPage.tsx`):**
+   - Live "Budget Remaining" card integrated into top KPI grid, reflecting variable spending against current month's budget ceiling.
 
 ---
 
@@ -86,39 +94,35 @@
    - Backend: All monetary values MUST use `DecimalField(max_digits=15, decimal_places=2)`. Never use `float`.
    - Frontend: All money values arrive from API as `string`. Never use native JS `number` or `parseFloat`. Always use `decimal.js` through `src/lib/money.ts`.
 2. **Account Balances Derived From Ledger:**
-   - Account current balance is derived from:
-     $$\text{Balance} = \text{Opening} + \text{Income} + \text{Transfers In} + \text{Borrowed} + \text{Loan Collections} - \text{Expenses} - \text{Transfers Out} - \text{Lent} - \text{Repayments} - \text{Held Returned}$$
    - Cached `current_balance` on `FinancialAccount` is updated atomically in database transactions via `apps/transactions/services.py` (`select_for_update()`).
-3. **Transfers, Recurring Occurrences & Obligations Separation:**
-   - Account transfers move money between accounts without altering net worth or appearing in income/expense reports.
-   - Generating recurring bill occurrences does NOT deduct money until explicitly paid.
-   - Future obligations are kept distinct from monthly recurring bills.
+3. **Transfers, Recurring Occurrences, Obligations & Budgets Separation:**
+   - Recurring bill occurrences never deduct balances until explicitly paid.
+   - Variable budget ceilings measure daily variable spending and explicitly exclude recurring bill payments to prevent double counting.
+   - Planned purchases remain advisory until explicitly settled via "Buy & Deduct".
 4. **UI Tokens & Slop Rejection:**
    - Palette: Deep Navy (`#172554`), Slate (`#64748B`), Off-white (`#F8FAFC`), Success (`#16A34A`), Warning (`#D97706`), Danger (`#DC2626`).
-   - Every interactive flow must implement all 8 states: `default`, `hover`, `focus-visible`, `active`, `disabled`, `loading` (skeleton), `error` (actionable), and `empty`.
+   - Every interactive flow implements all 8 states: `default`, `hover`, `focus-visible`, `active`, `disabled`, `loading` (skeleton), `error` (actionable), and `empty`.
 
 ---
 
-## 5. Immediate Next Step for Incoming Agent: Phase 4
+## 5. Immediate Next Step for Incoming Agent: Phase 5
 
 ### Objective:
-Build **Phase 4 — Monthly Budget Management & Planned Purchases**.
+Build **Phase 5 — Lending, Borrowing & Person Management**.
 
 ### Target Scope:
-1. **Backend (`apps/budgets/`):**
+1. **Backend (`apps/lending/`):**
    - Models:
-     - `MonthlyBudget`: user, year, month (1-12), total_amount (`DecimalField`), created_at.
-     - `BudgetCategory`: budget (FK), category (FK to `ExpenseCategory`), allocated_amount (`DecimalField`).
-     - `PlannedPurchase`: user, name, expected_amount (`DecimalField`), target_date, category, priority (`urgent`, `high`, `medium`, `low`), status (`planned`, `saving`, `ready`, `purchased`, `cancelled`), notes.
-   - Service to compute variable spending in current month vs. budget limit (excluding fixed recurring bills as per requirements spec).
-   - Alert thresholds: Normal (<80%), Approaching Warning (>=80%), Exceeded Alert (>100%).
-   - Serializers, ViewSets, and URLs.
-   - Integration tests.
-2. **Frontend (`BudgetPage.tsx` & `PlannedSpendingPage.tsx`):**
-   - Budget progress bar (color-coded: emerald <80%, amber 80-99%, rose >=100%).
-   - Category budget allocations and actual spending comparison.
-   - Planned purchase cards with status transitions and target dates.
-   - Dashboard integration: Connect "Budget Remaining" card on `DashboardPage.tsx`.
+     - `Person`: user, name, phone, email, notes, total_lent (`DecimalField`), total_borrowed (`DecimalField`).
+     - `LoanRecord`: user, person (FK), loan_type (`lent` vs. `borrowed`), initial_amount (`DecimalField`), remaining_amount (`DecimalField`), due_date, status (`active`, `settled`, `defaulted`), notes.
+     - `LoanSettlement`: loan (FK), transaction (FK), amount (`DecimalField`), settlement_date, notes.
+   - Atomic services to lend money (creates lending expense / deduction from account), borrow money (creates borrowing income / deposit to account), and record partial or full repayments.
+   - Serializers, ViewSets, and integration tests.
+2. **Frontend (`PeoplePage.tsx` & `useLendingQueries.ts`):**
+   - Summary cards: Total Money Lent (Receivable), Total Money Borrowed (Payable), Net Counterparty Position.
+   - Person cards / directory with individual debt balance sheets.
+   - "Lend / Borrow" modal with counterparty selection or creation.
+   - "Record Repayment / Collection" modal with account selection and balance update.
 
 ### Quality Gate Check Before Session Sign-off:
 - Backend: `python manage.py check`, `ruff check .`, `pytest` (all pass)

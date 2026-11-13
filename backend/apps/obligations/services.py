@@ -39,3 +39,4 @@ def pay_obligation(
     obligation.save(update_fields=['status', 'paid_transaction', 'paid_at'])
 
     return obligation, tx
+
