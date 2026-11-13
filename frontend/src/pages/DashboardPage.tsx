@@ -13,6 +13,8 @@ import {
 import { SummaryCard } from '@/components/shared/SummaryCard'
 import { useAccounts } from '@/hooks/useFinanceQueries'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useCurrentMonthBills } from '@/hooks/useBillsQueries'
+import { useObligationSummary } from '@/hooks/useObligationsQueries'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 import { formatMoney, sumMoney, subtractMoney } from '@/lib/money'
 import type { Transaction } from '@/types'
@@ -52,12 +54,34 @@ export function DashboardPage() {
     page: 1,
   })
 
+  const {
+    data: billsData,
+    isLoading: billsLoading,
+  } = useCurrentMonthBills()
+
+  const {
+    data: obligationData,
+    isLoading: obligationLoading,
+  } = useObligationSummary()
+
   // Compute metrics with Decimal.js (NEVER floating-point)
   const activeAccounts = useMemo(() => accounts.filter((a) => a.status === 'active'), [accounts])
 
   const totalBalance = useMemo(() => {
     return sumMoney(activeAccounts.map((a) => a.current_balance))
   }, [activeAccounts])
+
+  const unpaidBills = useMemo(() => {
+    return new Decimal(billsData?.unpaid_total || '0')
+  }, [billsData])
+
+  const remainingAfterFixedBills = useMemo(() => {
+    return subtractMoney(totalBalance, unpaidBills)
+  }, [totalBalance, unpaidBills])
+
+  const pendingObligations = useMemo(() => {
+    return new Decimal(obligationData?.total_pending || '0')
+  }, [obligationData])
 
   const { monthlyIncome, monthlyExpense, netCashflow } = useMemo(() => {
     const list = currentMonthData?.results ?? []
@@ -79,7 +103,7 @@ export function DashboardPage() {
     return (recentTxData?.results ?? []).slice(0, 5)
   }, [recentTxData])
 
-  const isGlobalLoading = accountsLoading || txLoading
+  const isGlobalLoading = accountsLoading || txLoading || billsLoading || obligationLoading
   const hasError = accountsError || txError
 
   const openQuickAdd = (tab: 'expense' | 'income' | 'transfer') => {
@@ -149,7 +173,7 @@ export function DashboardPage() {
       )}
 
       {/* Summary Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <SummaryCard
           title="Total Liquid Balance"
           value={formatMoney(totalBalance)}
@@ -160,7 +184,7 @@ export function DashboardPage() {
         <SummaryCard
           title="Monthly Income"
           value={formatMoney(monthlyIncome)}
-          subtitle="This month"
+          subtitle={`Net: ${netCashflow.greaterThanOrEqualTo(0) ? '+' : ''}${formatMoney(netCashflow)}`}
           variant="success"
           isLoading={isGlobalLoading}
         />
@@ -172,10 +196,24 @@ export function DashboardPage() {
           isLoading={isGlobalLoading}
         />
         <SummaryCard
-          title="Net Cashflow"
-          value={formatMoney(netCashflow)}
-          subtitle={netCashflow.greaterThanOrEqualTo(0) ? 'Surplus this month' : 'Deficit this month'}
-          variant={netCashflow.greaterThanOrEqualTo(0) ? 'success' : 'danger'}
+          title="Unpaid Fixed Expenses"
+          value={formatMoney(unpaidBills)}
+          subtitle="Recurring bills awaiting payment"
+          variant="warning"
+          isLoading={isGlobalLoading}
+        />
+        <SummaryCard
+          title="Remaining After Fixed Expenses"
+          value={formatMoney(remainingAfterFixedBills)}
+          subtitle="Total Balance − Unpaid Bills"
+          variant={remainingAfterFixedBills.greaterThanOrEqualTo(0) ? 'success' : 'danger'}
+          isLoading={isGlobalLoading}
+        />
+        <SummaryCard
+          title="Future Obligations"
+          value={formatMoney(pendingObligations)}
+          subtitle={`${obligationData?.pending_count ?? 0} pending commitment${(obligationData?.pending_count ?? 0) !== 1 ? 's' : ''}`}
+          variant="default"
           isLoading={isGlobalLoading}
         />
       </div>
@@ -277,13 +315,12 @@ export function DashboardPage() {
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                            isCredit
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isCredit
                               ? 'bg-emerald-50 text-emerald-600'
                               : isTransfer
-                              ? 'bg-blue-50 text-blue-600'
-                              : 'bg-rose-50 text-rose-600'
-                          }`}
+                                ? 'bg-blue-50 text-blue-600'
+                                : 'bg-rose-50 text-rose-600'
+                            }`}
                         >
                           {isCredit ? (
                             <TrendingUp className="h-4 w-4" />
@@ -304,13 +341,12 @@ export function DashboardPage() {
                       </div>
                       <div className="text-right shrink-0 ml-3">
                         <p
-                          className={`text-xs font-bold tabular-nums ${
-                            isCredit
+                          className={`text-xs font-bold tabular-nums ${isCredit
                               ? 'text-emerald-600'
                               : isTransfer
-                              ? 'text-slate-700'
-                              : 'text-rose-600'
-                          }`}
+                                ? 'text-slate-700'
+                                : 'text-rose-600'
+                            }`}
                         >
                           {isCredit ? '+' : isTransfer ? '↔ ' : '−'}
                           {formatMoney(new Decimal(tx.amount))}

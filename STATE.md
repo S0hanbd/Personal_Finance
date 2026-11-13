@@ -38,8 +38,8 @@
 |:---:|---|:---:|
 | **Phase 1** | Environment Bootstrapping, Harness, Quality Gates & Scaffolding | **COMPLETED & VERIFIED** |
 | **Phase 2** | Financial Ledger, Quick Add, Transactions Table, Accounts & Dashboard | **COMPLETED & VERIFIED** |
-| **Phase 3** | Recurring Bills & Future Financial Obligations | **UP NEXT** |
-| **Phase 4** | Monthly Budget Management & Planned Purchases | Pending |
+| **Phase 3** | Recurring Bills, Fixed Expenses & Future Financial Obligations | **COMPLETED & VERIFIED** |
+| **Phase 4** | Monthly Budget Management & Planned Purchases | **UP NEXT** |
 | **Phase 5** | Lending, Borrowing & Person Management | Pending |
 | **Phase 6** | Financial Analytics, Reports & Recharts | Pending |
 | **Phase 7** | Independent Project Finance Workspace | Pending |
@@ -47,34 +47,36 @@
 
 ---
 
-## 3. Detailed Progress Summary (Phase 2 Completed)
+## 3. Detailed Progress Summary (Phase 3 Completed)
 
-### Phase 2 Accomplishments:
-1. **Phase 2A — Atomic Ledger Services (`backend/apps/transactions/services.py`):**
-   - Atomic balance updates using `select_for_update()`.
-   - Idempotent transaction deletion & modification rollback.
-   - Inter-account transfers with sorted account ID locking to prevent deadlock.
-   - Account audit & reconcile service (`reconcile_account`).
-   - 7 exhaustive backend integration tests (all 18 backend tests pass).
-2. **Phase 2B — Quick Add Modal & CTA:**
-   - 3-tab UI: Expense (red), Income (green), Transfer (navy).
-   - Fast inline account, category, and income source creation without navigating away.
-   - Global "+ Record Transaction" button in header layout and route pages.
-3. **Phase 2C — Transactions Ledger Table (`frontend/src/pages/TransactionsPage.tsx`):**
-   - Paginated, filterable table with search, account dropdown, transaction type selector, and date ranges.
-   - Delete confirmation dialog with automatic balance rollback.
-   - Complete 8-state matrix: default, hover, focus-visible, active, disabled, loading skeletons, actionable error retry, empty states (both initial and zero filter results).
-4. **Phase 2D — Financial Accounts Management (`frontend/src/pages/AccountsPage.tsx`):**
-   - Summary card with live total liquid balance (using `decimal.js`).
-   - Grid cards with account type icons (cash, bank, mobile banking, other).
-   - One-click Inter-Account Transfer modal pre-configured with selected source account.
-   - One-click Audit/Reconcile action on each account.
-   - "New Account" modal with name, type, opening balance, and description.
-5. **Phase 2E — Live Dynamic Dashboard (`frontend/src/pages/DashboardPage.tsx`):**
-   - Real-time Total Liquid Balance, Monthly Income, Monthly Expense, and Net Cashflow metrics.
-   - Zero floating-point arithmetic throughout (`money.ts` / `decimal.js`).
-   - Live account balance breakdown and 5 most recent transactions with type icons.
-   - Direct quick-action shortcuts for Expense, Income, and Transfer.
+### Phase 3 Accomplishments:
+1. **Recurring Expenses & Fixed Bills Backend (`apps/bills/`):**
+   - Models: `RecurringExpense` and `RecurringExpenseOccurrence` with unique constraint on `(recurring_expense, period)` to prevent duplicate occurrences.
+   - Core Invariant Preserved: Generating occurrences NEVER deducts money from accounts; deduction occurs only upon explicit payment.
+   - `pay_bill_occurrence`: Atomic transaction that records an expense transaction, decrements account balance, and links transaction.
+   - Auto-detection of overdue bills when `due_date < today`.
+   - Dedicated endpoints: `GET /api/bills/occurrences/current-month/` (auto-generates current month occurrences with summary of unpaid/paid totals), `POST /api/bills/occurrences/{id}/pay/`.
+2. **Future Financial Obligations Backend (`apps/obligations/`):**
+   - Models: `FinancialObligation` with priority (`urgent`, `high`, `medium`, `low`), due dates, and statuses (`pending`, `paid`, `overdue`).
+   - `pay_obligation`: Atomic settlement that records an expense transaction and marks obligation as paid.
+   - Endpoints: `GET /api/obligations/summary/` (pending total and count), `POST /api/obligations/{id}/pay/`.
+3. **Backend Unit Tests:**
+   - 23/23 tests passing (including 4 new bill tests and 3 new obligation tests verifying zero deduction on occurrence generation, atomic balance deduction on payment, prevention of double payments, and overdue checks).
+4. **Frontend Recurring Bills (`BillsPage.tsx` & `useBillsQueries.ts`):**
+   - Summary cards: Unpaid This Month, Paid This Month, Active Bill Rules.
+   - Two-tab layout: This Month's Bills & Recurring Rules.
+   - "Mark as Paid" modal: Account selection (pre-selected with preferred account), payment date, notes.
+   - "New Recurring Bill" modal with frequency, due day (1-31), category, preferred account.
+   - Full 8-state matrix implemented.
+5. **Frontend Future Obligations (`ObligationsPage.tsx` & `useObligationsQueries.ts`):**
+   - Summary cards: Total Pending Obligations, Total Settled, Status Filter pills.
+   - Interactive table with priority badges, dynamic timeline/days-remaining countdowns.
+   - "Mark Paid" modal with account deduction.
+   - "Add Future Obligation" modal.
+6. **Dashboard Live Financial Integration (`DashboardPage.tsx`):**
+   - Integrated "Unpaid Fixed Expenses" card with real-time bill occurrence totals.
+   - Integrated "Remaining After Fixed Expenses" (`Total Liquid Balance - Unpaid Fixed Bills`) using `decimal.js`.
+   - Integrated "Future Obligations" card with pending count.
 
 ---
 
@@ -87,36 +89,36 @@
    - Account current balance is derived from:
      $$\text{Balance} = \text{Opening} + \text{Income} + \text{Transfers In} + \text{Borrowed} + \text{Loan Collections} - \text{Expenses} - \text{Transfers Out} - \text{Lent} - \text{Repayments} - \text{Held Returned}$$
    - Cached `current_balance` on `FinancialAccount` is updated atomically in database transactions via `apps/transactions/services.py` (`select_for_update()`).
-3. **Transfers & Loans Never Mixed with Income/Expense:**
+3. **Transfers, Recurring Occurrences & Obligations Separation:**
    - Account transfers move money between accounts without altering net worth or appearing in income/expense reports.
-   - Lending is an asset exchange, not an expense.
-   - Borrowing is a liability creation, not income.
+   - Generating recurring bill occurrences does NOT deduct money until explicitly paid.
+   - Future obligations are kept distinct from monthly recurring bills.
 4. **UI Tokens & Slop Rejection:**
    - Palette: Deep Navy (`#172554`), Slate (`#64748B`), Off-white (`#F8FAFC`), Success (`#16A34A`), Warning (`#D97706`), Danger (`#DC2626`).
    - Every interactive flow must implement all 8 states: `default`, `hover`, `focus-visible`, `active`, `disabled`, `loading` (skeleton), `error` (actionable), and `empty`.
 
 ---
 
-## 5. Immediate Next Step for Incoming Agent: Phase 3
+## 5. Immediate Next Step for Incoming Agent: Phase 4
 
 ### Objective:
-Build **Phase 3 — Recurring Bills & Future Financial Obligations**.
+Build **Phase 4 — Monthly Budget Management & Planned Purchases**.
 
 ### Target Scope:
-1. **Backend (`apps/bills/` & `apps/obligations/`):**
+1. **Backend (`apps/budgets/`):**
    - Models:
-     - `RecurringBill`: name, amount (`DecimalField`), frequency (`monthly`, `yearly`, etc.), due_day (1-31), category, default_account, is_active.
-     - `BillPayment`: recurring_bill, transaction (FK), paid_date, amount, payment_month (YYYY-MM).
-     - `FinancialObligation`: title, total_amount, due_date, status (`pending`, `partially_paid`, `paid`), priority (`urgent`, `high`, `medium`, `low`).
-   - Service to generate monthly bill instances and track unpaid bills for the current month.
-   - Serializers, ViewSets, and URLs for bills and obligations.
-   - Unit tests covering bill payment creation and balance deduction.
-2. **Frontend (`BillsPage.tsx` & `ObligationsPage.tsx`):**
-   - Query hooks for bills & obligations (`useBills`, `useObligations`, `usePayBill`).
-   - "Unpaid Bills This Month" section with "Mark as Paid" quick action (creates an expense transaction deducting from chosen account).
-   - Monthly recurring bills calendar/list with recurring cycle info.
-   - Future financial obligations list with due dates and priority tags.
-   - Dashboard integration: wire "Unpaid Fixed Expenses" and "Remaining After Fixed Expenses" summary cards on `DashboardPage.tsx`.
+     - `MonthlyBudget`: user, year, month (1-12), total_amount (`DecimalField`), created_at.
+     - `BudgetCategory`: budget (FK), category (FK to `ExpenseCategory`), allocated_amount (`DecimalField`).
+     - `PlannedPurchase`: user, name, expected_amount (`DecimalField`), target_date, category, priority (`urgent`, `high`, `medium`, `low`), status (`planned`, `saving`, `ready`, `purchased`, `cancelled`), notes.
+   - Service to compute variable spending in current month vs. budget limit (excluding fixed recurring bills as per requirements spec).
+   - Alert thresholds: Normal (<80%), Approaching Warning (>=80%), Exceeded Alert (>100%).
+   - Serializers, ViewSets, and URLs.
+   - Integration tests.
+2. **Frontend (`BudgetPage.tsx` & `PlannedSpendingPage.tsx`):**
+   - Budget progress bar (color-coded: emerald <80%, amber 80-99%, rose >=100%).
+   - Category budget allocations and actual spending comparison.
+   - Planned purchase cards with status transitions and target dates.
+   - Dashboard integration: Connect "Budget Remaining" card on `DashboardPage.tsx`.
 
 ### Quality Gate Check Before Session Sign-off:
 - Backend: `python manage.py check`, `ruff check .`, `pytest` (all pass)
