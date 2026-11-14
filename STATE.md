@@ -48,7 +48,104 @@
 
 ---
 
-## 3. Detailed Progress Summary (Phase 2.5 — Modal Redesign)
+## 3. Project File Map (NO NEED TO EXPLORE)
+
+### Backend Apps (Django REST Framework)
+| App | Models | Key Files | API Base |
+|-----|--------|-----------|----------|
+| `accounts` | FinancialAccount | models.py, services.py, views.py | `/api/accounts/` |
+| `authentication` | Profile | models.py, views.py | `/api/auth/` |
+| `transactions` | Transaction, Category, IncomeSource | models.py, services.py, views.py | `/api/transactions/` |
+| `bills` | RecurringBill, BillOccurrence | models.py, services.py, views.py | `/api/bills/` |
+| `budgets` | MonthlyBudget, BudgetCategory, PlannedPurchase | models.py, services.py, views.py | `/api/budgets/` |
+| `obligations` | FinancialObligation, OblangementPayment | models.py, services.py, views.py | `/api/obligations/` |
+| `lending` | Person, LoanRecord, LoanSettlement | models.py, services.py, views.py | `/api/lending/` |
+| `analytics` | (none — aggregation only) | services.py, views.py | `/api/analytics/` (placeholder) |
+| `projects` | (Phase 7 — pending) | models.py, views.py | `/api/projects/` |
+| `core` | — | utils.py (shared utilities) | — |
+
+### Backend Services (Business Logic)
+- `transactions/services.py`: `create_transaction()`, `create_transfer()` — atomic balance updates via `select_for_update()`
+- `bills/services.py`: `generate_bill_occurrences()`, `pay_bill_occurrence()` — schedule + payment flow
+- `budgets/services.py`: `calculate_budget_performance()` — variable spending exclusion of recurring bills
+- `lending/services.py`: `lend_money()`, `borrow_money()`, `record_settlement()` — loan lifecycle
+- `analytics/services.py`: Placeholder — 6 aggregation functions (Phase 6)
+
+### Frontend Structure
+```
+frontend/src/
+  main.tsx                    — Entry point
+  App.tsx                     — Router + QueryClient provider
+  index.css                   — Tailwind + shadcn/ui base
+  router/index.tsx            — Route definitions (all pages)
+  
+  pages/                      — Page components (1 per route)
+    DashboardPage.tsx         — KPIs, recent transactions, budget card
+    TransactionsPage.tsx      — Transaction list + filters
+    AccountsPage.tsx          — Account CRUD + balance overview
+    BillsPage.tsx             — Recurring bills management
+    BudgetPage.tsx            — Monthly budget + variable spending
+    PlannedSpendingPage.tsx   — Planned purchases lifecycle
+    ObligationsPage.tsx       — Financial obligations
+    PeoplePage.tsx            — Lending/borrowing + person directory
+    AnalyticsPage.tsx         — Placeholder (Phase 6)
+    ProjectsPage.tsx          — Placeholder (Phase 7)
+    SettingsPage.tsx          — User settings
+    auth/LoginPage.tsx        — Login form
+    auth/RegisterPage.tsx     — Registration form
+
+  components/
+    layout/                   — AppLayout, Header, Sidebar
+    shared/                   — EmptyState, ErrorState, SummaryCard, KeyboardShortcutsHelp
+    transactions/             — QuickAddModal (hooks wrapper + content pattern)
+
+  hooks/                      — React Query hooks (1 per domain)
+    useAuth.ts                — Auth mutations + protected query wrapper
+    useFinanceQueries.ts      — Accounts, categories, income sources
+    useTransactions.ts        — Transaction CRUD queries
+    useBillsQueries.ts        — Bill CRUD + occurrence queries
+    useBudgetQueries.ts       — Budget + planned purchase queries
+    useObligationsQueries.ts  — Obligation queries
+    useLendingQueries.ts      — Person + loan queries
+    useCalculatorInput.ts     — Calculator input logic (shared)
+    useKeyboardShortcuts.ts   — Global keyboard shortcuts
+
+  types/                      — TypeScript interfaces (money as string)
+    accounts.ts, auth.ts, bills.ts, budgets.ts,
+    lending.ts, obligations.ts, transactions.ts, index.ts
+
+  lib/
+    api.ts                    — Axios instance + interceptors
+    money.ts                  — Decimal.js wrappers (formatBDT, parseAmount, etc.)
+    constants.ts              — App constants
+    utils.ts                  — cn() (clsx + tailwind-merge)
+
+  store/
+    authStore.ts              — Zustand auth store (token, user, refresh)
+```
+
+### API Endpoints Summary
+| Domain | Endpoints |
+|--------|-----------|
+| Auth | `POST /api/auth/register/`, `POST /api/auth/login/`, `POST /api/auth/logout/`, `GET /api/auth/me/` |
+| Accounts | `GET/POST /api/accounts/`, `GET/PUT/PATCH/DELETE /api/accounts/{id}/` |
+| Transactions | `GET/POST /api/transactions/`, `GET/PUT/PATCH/DELETE /api/transactions/{id}/` |
+| Bills | `GET/POST /api/bills/`, `GET/PUT/DELETE /api/bills/{id}/`, `POST /api/bills/{id}/pay/` |
+| Budgets | `GET/POST /api/budgets/monthly/`, `GET /api/budgets/monthly/performance/`, `GET/POST /api/budgets/planned-purchases/`, `POST /api/budgets/planned-purchases/{id}/purchase/` |
+| Obligations | `GET/POST /api/obligations/`, `GET/PUT/DELETE /api/obligations/{id}/`, `POST /api/obligations/{id}/pay/` |
+| Lending | `GET/POST /api/lending/people/`, `GET/POST /api/lending/loans/`, `POST /api/lending/loans/{id}/settle/` |
+| Analytics | Placeholder — 6 endpoints planned (Phase 6) |
+
+### Key Patterns to Follow
+1. **Backend app structure:** models → serializers → services → views → urls → tests
+2. **Frontend hooks pattern:** `useXxxQueries.ts` — React Query hooks per domain, follow `useFinanceQueries.ts` pattern
+3. **Frontend types:** Money fields always `string`, interfaces in `types/`, re-exported from `types/index.ts`
+4. **Modal pattern:** Hooks wrapper + content component (see `QuickAddModal.tsx`)
+5. **Money handling:** Backend `DecimalField` + Python `Decimal`. Frontend `decimal.js` via `lib/money.ts`.
+
+---
+
+## 4. Detailed Progress Summary (Phase 2.5 — Modal Redesign)
 
 ### QuickAddModal Redesign (`frontend/src/components/transactions/QuickAddModal.tsx`):
 - **Title:** "Record transaction" (sentence case), subtitle removed.
@@ -65,7 +162,7 @@
 - **Accessibility:** `min-h-[24px]`/`min-w-[24px]` hit areas, backdrop click-to-close, Escape closes, `aria-live="polite"` for calculator preview, proper `role="dialog"` with `aria-modal="true"`.
 - **Responsive:** Date and Note fields in `grid-cols-2` with `min-w-0` to prevent overflow at 320px.
 
-## 3. Detailed Progress Summary (Phase 4 Completed)
+## 5. Detailed Progress Summary (Phase 4 Completed)
 
 ### Phase 4 Accomplishments:
 1. **Monthly Budget Backend (`apps/budgets/`):**
@@ -106,7 +203,7 @@
 
 ---
 
-## 4. Key Architectural Decisions & Non-Negotiable Rules
+## 6. Key Architectural Decisions & Non-Negotiable Rules
 
 1. **ZERO FLOATING-POINT FOR MONEY (CRITICAL):**
    - Backend: All monetary values MUST use `DecimalField(max_digits=15, decimal_places=2)`. Never use `float`.
@@ -123,7 +220,7 @@
 
 ---
 
-## 5. Phase 5 Completed — Lending, Borrowing & Person Management
+## 7. Phase 5 Completed — Lending, Borrowing & Person Management
 
 ### What Was Built:
 1. **Backend (`apps/lending/`):**
