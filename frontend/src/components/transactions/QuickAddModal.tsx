@@ -121,12 +121,18 @@ export function QuickAddModal({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  // --- Category creation ---
+  const priorCategoryIdRef = useRef(categoryId)
+
+  // --- Income source creation ---
+  const priorSourceIdRef = useRef(incomeSourceId)
+
+  // --- Account creation ---
+  const priorAccountIdRef = useRef(accountId)
+
   if (!isOpen) return null
 
   const isPending = createTxMutation.isPending || createTransferMutation.isPending
-
-  // --- Category creation ---
-  const priorCategoryIdRef = useRef(categoryId)
 
   const handleCreateNewCategory = useCallback(async () => {
     setCreationError(null)
@@ -155,8 +161,6 @@ export function QuickAddModal({
   }, [])
 
   // --- Income source creation ---
-  const priorSourceIdRef = useRef(incomeSourceId)
-
   const handleCreateNewSource = useCallback(async () => {
     setCreationError(null)
     const name = newSourceName.trim()
@@ -184,8 +188,6 @@ export function QuickAddModal({
   }, [])
 
   // --- Account creation ---
-  const priorAccountIdRef = useRef(accountId)
-
   const handleCreateNewAccount = useCallback(async () => {
     setCreationError(null)
     const name = newAccountName.trim()
