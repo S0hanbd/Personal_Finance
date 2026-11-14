@@ -1,7 +1,11 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
+router = DefaultRouter()
+router.register('', views.AnalyticsViewSet, basename='analytics')
+
 urlpatterns = [
-    path('', views.placeholder, name='analytics-summary'),
+    path('', include(router.urls)),
 ]
 
