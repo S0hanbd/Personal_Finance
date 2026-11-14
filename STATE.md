@@ -38,6 +38,7 @@
 |:---:|---|:---:|
 | **Phase 1** | Environment Bootstrapping, Harness, Quality Gates & Scaffolding | **COMPLETED & VERIFIED** |
 | **Phase 2** | Financial Ledger, Quick Add, Transactions Table, Accounts & Dashboard | **COMPLETED & VERIFIED** |
+| **Phase 2.5** | Record Transaction Modal Redesign (UI/UX) | **COMPLETED & VERIFIED** |
 | **Phase 3** | Recurring Bills, Fixed Expenses & Future Financial Obligations | **COMPLETED & VERIFIED** |
 | **Phase 4** | Monthly Budget Management & Planned Purchases | **COMPLETED & VERIFIED** |
 | **Phase 5** | Lending, Borrowing & Person Management | **UP NEXT** |
@@ -46,6 +47,23 @@
 | **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | Pending |
 
 ---
+
+## 3. Detailed Progress Summary (Phase 2.5 — Modal Redesign)
+
+### QuickAddModal Redesign (`frontend/src/components/transactions/QuickAddModal.tsx`):
+- **Title:** "Record transaction" (sentence case), subtitle removed.
+- **Transaction type:** Accessible `fieldset`/`radiogroup` with `role="radio"`, `aria-checked`, and visible Check icon on selected tab — recognizable without color alone. Unselected tabs use `text-foreground` (not muted) for ≥4.5:1 contrast.
+- **Amount field:** Label "Amount (BDT)", empty placeholder, persistent help text ("Enter a number or expression"). Calculator preview shows "Total ৳X,XXX.XX". Calculator icon has `aria-label="Open calculator"`.
+- **Amount validation:** Replaced `parseFloat` with `Decimal.js` — no floating-point for money.
+- **Category/Source:** Marked optional per backend schema (`null` FK). Labels: "Category (optional)" / "Income source (optional)". Empty option: "No category" / "No source".
+- **Account labels:** "Paid from" (expense), "Received into" (income), "From account" / "To account" (transfer).
+- **Date & Note:** "Transaction date" and "Note (optional)".
+- **Creation flows:** Category and account creation inline beside triggering field. Enter key isolated to trigger only the editor's save. Focus management with refs. Cancel restores prior selection.
+- **Submit guard:** `isPending` check prevents duplicate submissions.
+- **Success feedback:** Confirmation message ("Expense of ৳X saved.") shown before close.
+- **Submit labels:** "Add expense" / "Add income" / "Record transfer".
+- **Accessibility:** `min-h-[24px]`/`min-w-[24px]` hit areas, backdrop click-to-close, Escape closes, `aria-live="polite"` for calculator preview, proper `role="dialog"` with `aria-modal="true"`.
+- **Responsive:** Date and Note fields in `grid-cols-2` with `min-w-0` to prevent overflow at 320px.
 
 ## 3. Detailed Progress Summary (Phase 4 Completed)
 
