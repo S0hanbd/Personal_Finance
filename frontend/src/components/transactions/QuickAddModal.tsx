@@ -29,12 +29,24 @@ const TAB_CONFIG: Record<TabType, { label: string; icon: typeof TrendingDown; co
   transfer: { label: 'Transfer', icon: ArrowRightLeft, color: 'bg-primary text-white', ringColor: 'ring-primary/40', submitLabel: 'Record transfer' },
 }
 
+/*
+ * Architecture note: This component uses the "hooks wrapper + content component" pattern.
+ * All React hooks live in QuickAddModal (below) and are called unconditionally on every render.
+ * The JSX is delegated to QuickAddModalContent, which is a plain function component — it never
+ * calls hooks, so it can be conditionally rendered without violating React's Rules of Hooks.
+ *
+ * This prevents the "Rendered more hooks than during the previous render" error that occurs
+ * when hooks are placed after an early return or inside conditional branches.
+ * See: https://react.dev/reference/rules/only-call-React-at-the-top-level
+ */
+
 export function QuickAddModal({
   isOpen,
   onClose,
   initialTab = 'expense',
   initialAccountId,
 }: QuickAddModalProps) {
+  // --- STATE (always called, never conditional) ---
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
   const amountInput = useCalculatorInput()
   const [accountId, setAccountId] = useState<string>(initialAccountId ?? '')
@@ -44,7 +56,6 @@ export function QuickAddModal({
   const [description, setDescription] = useState('')
   const [transactionDate, setTransactionDate] = useState(() => new Date().toISOString().split('T')[0])
 
-  // Inline creation states
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [showNewSource, setShowNewSource] = useState(false)
@@ -58,12 +69,17 @@ export function QuickAddModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  // --- REFS (always called, never conditional) ---
   const dialogRef = useRef<HTMLDivElement>(null)
   const amountInputRef = useRef<HTMLInputElement>(null)
   const newCategoryInputRef = useRef<HTMLInputElement>(null)
   const newSourceInputRef = useRef<HTMLInputElement>(null)
   const newAccountNameInputRef = useRef<HTMLInputElement>(null)
+  const priorCategoryIdRef = useRef(categoryId)
+  const priorSourceIdRef = useRef(incomeSourceId)
+  const priorAccountIdRef = useRef(accountId)
 
+  // --- DATA FETCHING (always called, never conditional) ---
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts()
   const { data: categories = [] } = useExpenseCategories()
   const { data: sources = [] } = useIncomeSources()
@@ -74,7 +90,7 @@ export function QuickAddModal({
   const createSourceMutation = useCreateIncomeSource()
   const createAccountMutation = useCreateAccount()
 
-  // Set default account when accounts load
+  // --- EFFECTS (always called, never conditional) ---
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
       setAccountId(accounts[0].id.toString())
@@ -84,7 +100,6 @@ export function QuickAddModal({
     }
   }, [accounts, accountId, destinationAccountId])
 
-  // Reset and focus when dialog opens
   useEffect(() => {
     if (isOpen) {
       setErrorMessage(null)
@@ -108,7 +123,6 @@ export function QuickAddModal({
     }
   }, [isOpen, initialTab, initialAccountId])
 
-  // Escape key + focus trap
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -121,15 +135,7 @@ export function QuickAddModal({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
-  // --- Category creation ---
-  const priorCategoryIdRef = useRef(categoryId)
-
-  // --- Income source creation ---
-  const priorSourceIdRef = useRef(incomeSourceId)
-
-  // --- Account creation ---
-  const priorAccountIdRef = useRef(accountId)
-
+  // --- CALLBACKS (always called, never conditional) ---
   const isPending = createTxMutation.isPending || createTransferMutation.isPending
 
   const handleCreateNewCategory = useCallback(async () => {
@@ -158,7 +164,6 @@ export function QuickAddModal({
     setCreationError(null)
   }, [])
 
-  // --- Income source creation ---
   const handleCreateNewSource = useCallback(async () => {
     setCreationError(null)
     const name = newSourceName.trim()
@@ -185,7 +190,6 @@ export function QuickAddModal({
     setCreationError(null)
   }, [])
 
-  // --- Account creation ---
   const handleCreateNewAccount = useCallback(async () => {
     setCreationError(null)
     const name = newAccountName.trim()
@@ -218,21 +222,16 @@ export function QuickAddModal({
     setCreationError(null)
   }, [])
 
-  // --- Main submit ---
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
     setSuccessMessage(null)
-
-    // Guard against duplicate submissions
     if (isPending) return
 
-    // Resolve any pending expression before submitting
     const finalAmount = amountInput.isExpression
       ? (amountInput.previewValue ?? amountInput.displayValue)
       : amountInput.displayValue
 
-    // Use Decimal for validation — no parseFloat
     const amountDecimal = new Decimal(finalAmount)
     if (amountDecimal.isNaN() || amountDecimal.lte(0)) {
       setErrorMessage('Please enter a valid amount greater than zero.')
@@ -274,7 +273,6 @@ export function QuickAddModal({
         setSuccessMessage(`${typeLabel} of ৳${amountStr} saved.`)
       }
 
-      // Reset and close on success
       setTimeout(() => {
         amountInput.reset()
         setDescription('')
@@ -293,7 +291,7 @@ export function QuickAddModal({
     }
   }, [isPending, amountInput, accountId, destinationAccountId, activeTab, categoryId, incomeSourceId, description, transactionDate, createTransferMutation, createTxMutation, onClose])
 
-  // Format balance for display
+  // --- HELPERS (plain functions, not hooks — safe to define here) ---
   const formatBalance = (bal: string) => {
     try {
       return new Decimal(bal).toFixed(2)
@@ -302,7 +300,6 @@ export function QuickAddModal({
     }
   }
 
-  // Format preview total
   const formatPreview = (val: string) => {
     try {
       return new Decimal(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -311,9 +308,168 @@ export function QuickAddModal({
     }
   }
 
-  const tabConfig = TAB_CONFIG[activeTab]
+  // --- RENDER ---
+  // No early return. Use conditional rendering instead to preserve hook call order.
+  return isOpen
+    ? (
+      <QuickAddModalContent
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        amountInput={amountInput}
+        amountInputRef={amountInputRef}
+        accountId={accountId}
+        setAccountId={setAccountId}
+        destinationAccountId={destinationAccountId}
+        setDestinationAccountId={setDestinationAccountId}
+        categoryId={categoryId}
+        setCategoryId={setCategoryId}
+        incomeSourceId={incomeSourceId}
+        setIncomeSourceId={setIncomeSourceId}
+        description={description}
+        setDescription={setDescription}
+        transactionDate={transactionDate}
+        setTransactionDate={setTransactionDate}
+        showNewCategory={showNewCategory}
+        setShowNewCategory={setShowNewCategory}
+        newCategoryName={newCategoryName}
+        setNewCategoryName={setNewCategoryName}
+        showNewSource={showNewSource}
+        setShowNewSource={setShowNewSource}
+        newSourceName={newSourceName}
+        setNewSourceName={setNewSourceName}
+        showNewAccount={showNewAccount}
+        setShowNewAccount={setShowNewAccount}
+        newAccountName={newAccountName}
+        setNewAccountName={setNewAccountName}
+        newAccountType={newAccountType}
+        setNewAccountType={setNewAccountType}
+        newAccountBalance={newAccountBalance}
+        setNewAccountBalance={setNewAccountBalance}
+        creationError={creationError}
+        setCreationError={setCreationError}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        isPending={isPending}
+        accounts={accounts}
+        accountsLoading={accountsLoading}
+        categories={categories}
+        sources={sources}
+        dialogRef={dialogRef}
+        amountInputRefForFocus={amountInputRef}
+        newCategoryInputRef={newCategoryInputRef}
+        newSourceInputRef={newSourceInputRef}
+        newAccountNameInputRef={newAccountNameInputRef}
+        priorCategoryIdRef={priorCategoryIdRef}
+        priorSourceIdRef={priorSourceIdRef}
+        priorAccountIdRef={priorAccountIdRef}
+        createCategoryMutation={createCategoryMutation}
+        createSourceMutation={createSourceMutation}
+        createAccountMutation={createAccountMutation}
+        onClose={onClose}
+        handleSubmit={handleSubmit}
+        handleCreateNewCategory={handleCreateNewCategory}
+        handleCancelCategory={handleCancelCategory}
+        handleCreateNewSource={handleCreateNewSource}
+        handleCancelSource={handleCancelSource}
+        handleCreateNewAccount={handleCreateNewAccount}
+        handleCancelAccount={handleCancelAccount}
+        formatBalance={formatBalance}
+        formatPreview={formatPreview}
+      />
+    )
+    : null
+}
 
-  if (!isOpen) return null
+// --- Content Component (NO hooks — safe for conditional rendering) ---
+
+interface ContentProps {
+  activeTab: TabType
+  setActiveTab: (tab: TabType) => void
+  amountInput: ReturnType<typeof useCalculatorInput>
+  amountInputRef: React.RefObject<HTMLInputElement>
+  accountId: string
+  setAccountId: (id: string) => void
+  destinationAccountId: string
+  setDestinationAccountId: (id: string) => void
+  categoryId: string
+  setCategoryId: (id: string) => void
+  incomeSourceId: string
+  setIncomeSourceId: (id: string) => void
+  description: string
+  setDescription: (desc: string) => void
+  transactionDate: string
+  setTransactionDate: (date: string) => void
+  showNewCategory: boolean
+  setShowNewCategory: (show: boolean) => void
+  newCategoryName: string
+  setNewCategoryName: (name: string) => void
+  showNewSource: boolean
+  setShowNewSource: (show: boolean) => void
+  newSourceName: string
+  setNewSourceName: (name: string) => void
+  showNewAccount: boolean
+  setShowNewAccount: (show: boolean) => void
+  newAccountName: string
+  setNewAccountName: (name: string) => void
+  newAccountType: string
+  setNewAccountType: (type: string) => void
+  newAccountBalance: string
+  setNewAccountBalance: (bal: string) => void
+  creationError: string | null
+  setCreationError: (err: string | null) => void
+  errorMessage: string | null
+  successMessage: string | null
+  isPending: boolean
+  accounts: Array<{ id: number; name: string; current_balance: string }>
+  accountsLoading: boolean
+  categories: Array<{ id: number; name: string }>
+  sources: Array<{ id: number; name: string }>
+  dialogRef: React.RefObject<HTMLDivElement>
+  amountInputRefForFocus: React.RefObject<HTMLInputElement>
+  newCategoryInputRef: React.RefObject<HTMLInputElement>
+  newSourceInputRef: React.RefObject<HTMLInputElement>
+  newAccountNameInputRef: React.RefObject<HTMLInputElement>
+  priorCategoryIdRef: React.MutableRefObject<string>
+  priorSourceIdRef: React.MutableRefObject<string>
+  priorAccountIdRef: React.MutableRefObject<string>
+  createCategoryMutation: { isPending: boolean }
+  createSourceMutation: { isPending: boolean }
+  createAccountMutation: { isPending: boolean }
+  onClose: () => void
+  handleSubmit: (e: React.FormEvent) => void
+  handleCreateNewCategory: () => void
+  handleCancelCategory: () => void
+  handleCreateNewSource: () => void
+  handleCancelSource: () => void
+  handleCreateNewAccount: () => void
+  handleCancelAccount: () => void
+  formatBalance: (bal: string) => string
+  formatPreview: (val: string) => string
+}
+
+function QuickAddModalContent(props: ContentProps) {
+  const {
+    activeTab, setActiveTab, amountInput, amountInputRef,
+    accountId, setAccountId, destinationAccountId, setDestinationAccountId,
+    categoryId, setCategoryId, incomeSourceId, setIncomeSourceId,
+    description, setDescription, transactionDate, setTransactionDate,
+    showNewCategory, setShowNewCategory, newCategoryName, setNewCategoryName,
+    showNewSource, setShowNewSource, newSourceName, setNewSourceName,
+    showNewAccount, setShowNewAccount, newAccountName, setNewAccountName,
+    newAccountType, setNewAccountType, newAccountBalance, setNewAccountBalance,
+    creationError, errorMessage, successMessage, isPending,
+    accounts, accountsLoading, categories, sources,
+    dialogRef, newCategoryInputRef, newSourceInputRef, newAccountNameInputRef,
+    priorCategoryIdRef, priorSourceIdRef, priorAccountIdRef,
+    createCategoryMutation, createSourceMutation, createAccountMutation,
+    onClose, handleSubmit,
+    handleCreateNewCategory, handleCancelCategory,
+    handleCreateNewSource, handleCancelSource,
+    handleCreateNewAccount, handleCancelAccount,
+    formatBalance, formatPreview,
+  } = props
+
+  const tabConfig = TAB_CONFIG[activeTab]
 
   return (
     <div
