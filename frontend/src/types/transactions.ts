@@ -19,6 +19,8 @@ export interface Transaction {
   category_name?: string
   income_source?: number
   income_source_name?: string
+  project_item?: number
+  project_item_name?: string
   description: string
   transaction_date: string
   created_at: string
@@ -44,6 +46,7 @@ export interface CreateTransactionRequest {
   amount: string
   category?: number
   income_source?: number
+  project_item?: number
   description?: string
   transaction_date: string
 }

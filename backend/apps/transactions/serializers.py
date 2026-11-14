@@ -20,6 +20,10 @@ class TransactionSerializer(serializers.ModelSerializer):
     account_name = serializers.CharField(source='account.name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     income_source_name = serializers.CharField(source='income_source.name', read_only=True)
+    project_item = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+    project_item_name = serializers.CharField(
+        source='project_item.name', read_only=True, default=None
+    )
 
     class Meta:
         model = Transaction
@@ -30,6 +34,22 @@ class TransactionSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("Amount must be strictly positive.")
         return value
+
+    def validate_project_item(self, value):
+        if value is not None:
+            from apps.projects.models import ProjectItem
+            try:
+                item = ProjectItem.objects.get(id=value)
+            except ProjectItem.DoesNotExist:
+                raise serializers.ValidationError("Invalid project item.")
+            if self.context.get('request'):
+                user = self.context['request'].user
+                if item.project.user != user:
+                    raise serializers.ValidationError(
+                        "This project item does not belong to your projects."
+                    )
+            return item
+        return None
 
 
 class AccountTransferSerializer(serializers.ModelSerializer):

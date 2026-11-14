@@ -45,6 +45,7 @@ export interface CreateTransactionPayload {
   amount: string
   category?: number | null
   income_source?: number | null
+  project_item?: number | null
   description?: string
   transaction_date: string
 }

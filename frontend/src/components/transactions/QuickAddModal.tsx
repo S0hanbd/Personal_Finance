@@ -11,6 +11,7 @@ import {
   useCreateIncomeSource,
   useCreateAccount,
 } from '@/hooks/useFinanceQueries'
+import { useProjects } from '@/hooks/useProjectsQueries'
 import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { cn } from '@/lib/utils'
 
@@ -53,6 +54,7 @@ export function QuickAddModal({
   const [destinationAccountId, setDestinationAccountId] = useState<string>('')
   const [categoryId, setCategoryId] = useState<string>('')
   const [incomeSourceId, setIncomeSourceId] = useState<string>('')
+  const [projectItemId, setProjectItemId] = useState<string>('')
   const [description, setDescription] = useState('')
   const [transactionDate, setTransactionDate] = useState(() => new Date().toISOString().split('T')[0])
 
@@ -83,6 +85,14 @@ export function QuickAddModal({
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts()
   const { data: categories = [] } = useExpenseCategories()
   const { data: sources = [] } = useIncomeSources()
+  const { data: projects = [] } = useProjects()
+  const projectItems = projects
+    .filter((p) => p.status === 'active')
+    .flatMap((p) =>
+      (p as { items?: Array<{ id: number; name: string }> } & { name: string }).items?.map(
+        (item) => ({ id: item.id, label: `${p.name} — ${item.name}` }),
+      ) ?? [],
+    )
 
   const createTxMutation = useCreateTransaction()
   const createTransferMutation = useCreateTransfer()
@@ -266,6 +276,7 @@ export function QuickAddModal({
           amount: amountStr,
           category: activeTab === 'expense' && categoryId ? parseInt(categoryId, 10) : null,
           income_source: activeTab === 'income' && incomeSourceId ? parseInt(incomeSourceId, 10) : null,
+          project_item: activeTab === 'expense' && projectItemId ? parseInt(projectItemId, 10) : null,
           description: description.trim(),
           transaction_date: transactionDate,
         })
@@ -289,7 +300,7 @@ export function QuickAddModal({
         setErrorMessage('Failed to save transaction. Please check your network and inputs.')
       }
     }
-  }, [isPending, amountInput, accountId, destinationAccountId, activeTab, categoryId, incomeSourceId, description, transactionDate, createTransferMutation, createTxMutation, onClose])
+  }, [isPending, amountInput, accountId, destinationAccountId, activeTab, categoryId, incomeSourceId, projectItemId, description, transactionDate, createTransferMutation, createTxMutation, onClose])
 
   // --- HELPERS (plain functions, not hooks — safe to define here) ---
   const formatBalance = (bal: string) => {
@@ -353,6 +364,9 @@ export function QuickAddModal({
         accounts={accounts}
         accountsLoading={accountsLoading}
         categories={categories}
+        projectItems={projectItems}
+        projectItemId={projectItemId}
+        setProjectItemId={setProjectItemId}
         sources={sources}
         dialogRef={dialogRef}
         amountInputRefForFocus={amountInputRef}
@@ -424,6 +438,9 @@ interface ContentProps {
   accountsLoading: boolean
   categories: Array<{ id: number; name: string }>
   sources: Array<{ id: number; name: string }>
+  projectItems: Array<{ id: number; label: string }>
+  projectItemId: string
+  setProjectItemId: (id: string) => void
   dialogRef: React.RefObject<HTMLDivElement>
   amountInputRefForFocus: React.RefObject<HTMLInputElement>
   newCategoryInputRef: React.RefObject<HTMLInputElement>
@@ -459,6 +476,7 @@ function QuickAddModalContent(props: ContentProps) {
     newAccountType, setNewAccountType, newAccountBalance, setNewAccountBalance,
     creationError, errorMessage, successMessage, isPending,
     accounts, accountsLoading, categories, sources,
+    projectItems, projectItemId, setProjectItemId,
     dialogRef, newCategoryInputRef, newSourceInputRef, newAccountNameInputRef,
     priorCategoryIdRef, priorSourceIdRef, priorAccountIdRef,
     createCategoryMutation, createSourceMutation, createAccountMutation,
@@ -770,6 +788,28 @@ function QuickAddModalContent(props: ContentProps) {
                   ))}
                 </select>
               )}
+            </div>
+          )}
+
+          {/* Project Item — expense only */}
+          {activeTab === 'expense' && (
+            <div>
+              <label htmlFor="tx-project-item" className="block text-sm font-medium text-foreground mb-1">
+                Project Item (optional)
+              </label>
+              <select
+                id="tx-project-item"
+                value={projectItemId}
+                onChange={(e) => setProjectItemId(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-md text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">No project</option>
+                {projectItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+              </select>
             </div>
           )}
 

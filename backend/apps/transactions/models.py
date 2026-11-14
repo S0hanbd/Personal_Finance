@@ -54,6 +54,13 @@ class Transaction(TimeStampedModel):
     income_source = models.ForeignKey(IncomeSource, null=True, blank=True, on_delete=models.SET_NULL)
     description = models.TextField(blank=True)
     transaction_date = models.DateField()
+    project_item = models.ForeignKey(
+        'projects.ProjectItem',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='transactions',
+    )
 
     class Meta:
         db_table = 'transactions'
