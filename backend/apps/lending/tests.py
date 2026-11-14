@@ -244,3 +244,19 @@ class TestLendingAPI:
         assert res.data['count'] == 1
         assert res.data['results'][0]['name'] == 'Rahim'
 
+    def test_list_returns_only_own_people(self, lending_setup, other_user):
+        """User A should not see User B's people."""
+        from .models import Person
+        client = lending_setup['client']
+        account = lending_setup['account']
+        client.post('/api/lending/loans/lend/', {
+            'person_name': 'Rahim',
+            'amount': '5000.00',
+            'account_id': account.id,
+        })
+        Person.objects.create(user=other_user, name='Other Person')
+        res = client.get('/api/lending/people/')
+        assert res.status_code == 200
+        assert res.data['count'] == 1
+        assert res.data['results'][0]['name'] == 'Rahim'
+

@@ -172,3 +172,25 @@ class TestTransactionsAndLedgerScenarios:
         assert res_search.status_code == 200
         assert len(res_search.data['results']) == 1
         assert res_search.data['results'][0]['description'] == 'Coffee'
+
+    def test_list_returns_only_own_transactions(self, auth_client, user, other_user):
+        """User A should not see User B's transactions."""
+        cash = FinancialAccount.objects.create(
+            user=user, name='Cash', current_balance=Decimal('1000.00')
+        )
+        other_cash = FinancialAccount.objects.create(
+            user=other_user, name='Other Cash', current_balance=Decimal('5000.00')
+        )
+        auth_client.post(reverse('transaction-list'), {
+            'account': cash.id, 'transaction_type': 'income',
+            'amount': '200.00', 'transaction_date': '2026-11-10',
+        })
+        from apps.transactions.models import Transaction
+        Transaction.objects.create(
+            user=other_user, account=other_cash, transaction_type='expense',
+            amount=Decimal('50.00'), transaction_date='2026-11-12',
+        )
+        res = auth_client.get(reverse('transaction-list'))
+        assert res.status_code == 200
+        assert len(res.data['results']) == 1
+        assert res.data['results'][0]['amount'] == '200.00'

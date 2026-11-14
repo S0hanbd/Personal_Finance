@@ -208,3 +208,14 @@ class TestAPISummary:
         res = api_client.get('/api/projects/')
         assert res.status_code in [401, 403]
 
+    def test_list_returns_only_own_projects(self, project_setup, other_user):
+        """User A should not see User B's projects."""
+        user = project_setup['user']
+        client = project_setup['client']
+        Project.objects.create(user=user, name='My Project')
+        Project.objects.create(user=other_user, name='Other Project')
+        res = client.get('/api/projects/')
+        assert res.status_code == 200
+        assert res.data['count'] == 1
+        assert res.data['results'][0]['name'] == 'My Project'
+
