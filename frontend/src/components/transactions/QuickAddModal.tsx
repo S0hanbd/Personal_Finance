@@ -130,8 +130,6 @@ export function QuickAddModal({
   // --- Account creation ---
   const priorAccountIdRef = useRef(accountId)
 
-  if (!isOpen) return null
-
   const isPending = createTxMutation.isPending || createTransferMutation.isPending
 
   const handleCreateNewCategory = useCallback(async () => {
@@ -314,6 +312,8 @@ export function QuickAddModal({
   }
 
   const tabConfig = TAB_CONFIG[activeTab]
+
+  if (!isOpen) return null
 
   return (
     <div
