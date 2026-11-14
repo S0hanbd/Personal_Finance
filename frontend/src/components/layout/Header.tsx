@@ -4,12 +4,21 @@ import { useAuth } from '@/hooks/useAuth'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 
 interface HeaderProps {
+  onQuickAdd?: () => void
   onToggleMobileNav?: () => void
 }
 
-export function Header({}: HeaderProps) {
+export function Header({ onQuickAdd }: HeaderProps) {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const { user, logout } = useAuth()
+
+  const handleQuickAddClick = () => {
+    if (onQuickAdd) {
+      onQuickAdd()
+    } else {
+      setIsQuickAddOpen(true)
+    }
+  }
 
   return (
     <>
@@ -27,7 +36,7 @@ export function Header({}: HeaderProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Quick Add CTA Button */}
             <button
-              onClick={() => setIsQuickAddOpen(true)}
+              onClick={handleQuickAddClick}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm hover:bg-primary/90 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus size={16} />
@@ -54,11 +63,13 @@ export function Header({}: HeaderProps) {
         </div>
       </header>
 
-      {/* Quick Add Modal */}
-      <QuickAddModal
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-      />
+      {/* Quick Add Modal — rendered here when no external onQuickAdd is provided */}
+      {!onQuickAdd && (
+        <QuickAddModal
+          isOpen={isQuickAddOpen}
+          onClose={() => setIsQuickAddOpen(false)}
+        />
+      )}
     </>
   )
 }

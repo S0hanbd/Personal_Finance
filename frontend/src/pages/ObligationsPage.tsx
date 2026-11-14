@@ -9,6 +9,7 @@ import {
   AlertCircle,
   RefreshCw,
   X,
+  Calculator,
 } from 'lucide-react'
 import {
   useObligations,
@@ -17,7 +18,9 @@ import {
   usePayObligation,
 } from '@/hooks/useObligationsQueries'
 import { useAccounts, useExpenseCategories } from '@/hooks/useFinanceQueries'
+import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { formatMoney, parseMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 import type { FinancialObligation, ObligationPriority } from '@/types'
 
 // ── Priority badges configuration ─────────────────────────────────────────────
@@ -206,7 +209,7 @@ interface NewObligationModalProps {
 
 function NewObligationModal({ isOpen, onClose }: NewObligationModalProps) {
   const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
+  const amountInput = useCalculatorInput()
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<ObligationPriority>('medium')
   const [categoryId, setCategoryId] = useState('')
@@ -227,7 +230,11 @@ function NewObligationModal({ isOpen, onClose }: NewObligationModalProps) {
       return
     }
 
-    const parsed = parseMoney(amount)
+    // Resolve any pending expression before submitting
+    const finalAmount = amountInput.isExpression
+      ? (amountInput.previewValue ?? amountInput.displayValue)
+      : amountInput.displayValue
+    const parsed = parseMoney(finalAmount)
     if (parsed.lessThanOrEqualTo(0)) {
       setError('Amount must be greater than zero.')
       return
@@ -250,7 +257,7 @@ function NewObligationModal({ isOpen, onClose }: NewObligationModalProps) {
       {
         onSuccess: () => {
           setName('')
-          setAmount('')
+          amountInput.reset()
           setDueDate('')
           setDescription('')
           onClose()
@@ -319,17 +326,29 @@ function NewObligationModal({ isOpen, onClose }: NewObligationModalProps) {
               <label htmlFor="ob-amount" className="block text-xs font-medium text-foreground mb-1">
                 Amount (৳) <span className="text-destructive">*</span>
               </label>
-              <input
-                id="ob-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="18000.00"
-                className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              />
+              <div className="relative">
+                <Calculator size={12} className="absolute right-3 top-2.5 text-muted-foreground/50" />
+                <input
+                  id="ob-amount"
+                  type="text"
+                  inputMode="decimal"
+                  required
+                  value={amountInput.displayValue}
+                  onChange={amountInput.handleChange}
+                  onBlur={amountInput.handleBlur}
+                  onKeyDown={amountInput.handleKeyDown}
+                  placeholder="18000.00  (e.g. 9000+9000)"
+                  className={cn(
+                    'w-full h-9 px-3 pr-9 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    amountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                  )}
+                />
+              </div>
+              {amountInput.isExpression && amountInput.previewValue && (
+                <p className="mt-1 text-[11px] font-medium text-primary" role="status" aria-live="polite">
+                  = {parseFloat(amountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="ob-due-date" className="block text-xs font-medium text-foreground mb-1">

@@ -10,10 +10,13 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
+  Calculator,
 } from 'lucide-react'
 import { useAccounts, useCreateAccount, useReconcileAccount } from '@/hooks/useFinanceQueries'
+import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 import { formatMoney, sumMoney, parseMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 import type { FinancialAccount, AccountType } from '@/types'
 
 // ── Icons & Colors per Account Type ──────────────────────────────────────────
@@ -56,7 +59,7 @@ interface NewAccountModalProps {
 function NewAccountModal({ isOpen, onClose }: NewAccountModalProps) {
   const [name, setName] = useState('')
   const [accountType, setAccountType] = useState<AccountType>('cash')
-  const [openingBalance, setOpeningBalance] = useState('')
+  const openingBalanceInput = useCalculatorInput()
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -73,7 +76,11 @@ function NewAccountModal({ isOpen, onClose }: NewAccountModalProps) {
       return
     }
 
-    const parsed = parseMoney(openingBalance || '0')
+    // Resolve any pending expression before submitting
+    const finalBalance = openingBalanceInput.isExpression
+      ? openingBalanceInput.previewValue
+      : openingBalanceInput.displayValue
+    const parsed = parseMoney(finalBalance || '0')
     if (parsed.isNegative()) {
       setError('Opening balance cannot be negative.')
       return
@@ -89,7 +96,7 @@ function NewAccountModal({ isOpen, onClose }: NewAccountModalProps) {
       {
         onSuccess: () => {
           setName('')
-          setOpeningBalance('')
+          openingBalanceInput.reset()
           setDescription('')
           onClose()
         },
@@ -178,16 +185,28 @@ function NewAccountModal({ isOpen, onClose }: NewAccountModalProps) {
             <label htmlFor="account-opening-bal" className="block text-xs font-medium text-foreground mb-1">
               Opening Balance (৳)
             </label>
-            <input
-              id="account-opening-bal"
-              type="number"
-              step="0.01"
-              min="0"
-              value={openingBalance}
-              onChange={(e) => setOpeningBalance(e.target.value)}
-              placeholder="0.00"
-              className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            />
+            <div className="relative">
+              <Calculator size={12} className="absolute right-3 top-2.5 text-muted-foreground/50" />
+              <input
+                id="account-opening-bal"
+                type="text"
+                inputMode="decimal"
+                value={openingBalanceInput.displayValue}
+                onChange={openingBalanceInput.handleChange}
+                onBlur={openingBalanceInput.handleBlur}
+                onKeyDown={openingBalanceInput.handleKeyDown}
+                placeholder="0.00  (e.g. 5000+3000)"
+                className={cn(
+                  'w-full h-9 px-3 pr-9 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                  openingBalanceInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                )}
+              />
+            </div>
+            {openingBalanceInput.isExpression && openingBalanceInput.previewValue && (
+              <p className="mt-1 text-[11px] font-medium text-primary" role="status" aria-live="polite">
+                = {parseFloat(openingBalanceInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+              </p>
+            )}
             <p className="mt-1 text-[11px] text-muted-foreground">
               Initial starting balance. All future transactions will update this ledger.
             </p>

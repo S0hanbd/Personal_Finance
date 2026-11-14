@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Plus, AlertCircle, ArrowRightLeft, TrendingDown, TrendingUp } from 'lucide-react'
+import { X, Plus, AlertCircle, ArrowRightLeft, TrendingDown, TrendingUp, Calculator } from 'lucide-react'
 import {
   useAccounts,
   useExpenseCategories,
@@ -10,6 +10,7 @@ import {
   useCreateIncomeSource,
   useCreateAccount,
 } from '@/hooks/useFinanceQueries'
+import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { cn } from '@/lib/utils'
 
 interface QuickAddModalProps {
@@ -19,7 +20,7 @@ interface QuickAddModalProps {
   initialAccountId?: string
 }
 
-type TabType = 'expense' | 'income' | 'transfer'
+export type TabType = 'expense' | 'income' | 'transfer'
 
 export function QuickAddModal({
   isOpen,
@@ -28,7 +29,7 @@ export function QuickAddModal({
   initialAccountId,
 }: QuickAddModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
-  const [amount, setAmount] = useState('')
+  const amountInput = useCalculatorInput()
   const [accountId, setAccountId] = useState<string>(initialAccountId ?? '')
   const [destinationAccountId, setDestinationAccountId] = useState<string>('')
   const [categoryId, setCategoryId] = useState<string>('')
@@ -142,7 +143,11 @@ export function QuickAddModal({
     e.preventDefault()
     setErrorMessage(null)
 
-    const parsedAmount = parseFloat(amount)
+    // Resolve any pending expression before submitting
+    const finalAmount = amountInput.isExpression
+      ? (amountInput.previewValue ?? amountInput.displayValue)
+      : amountInput.displayValue
+    const parsedAmount = parseFloat(finalAmount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setErrorMessage('Please enter a valid amount greater than zero.')
       return
@@ -179,7 +184,7 @@ export function QuickAddModal({
       }
 
       // Reset and close on success
-      setAmount('')
+      amountInput.reset()
       setDescription('')
       onClose()
     } catch (err: unknown) {
@@ -354,19 +359,29 @@ export function QuickAddModal({
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-base font-bold text-muted-foreground">৳</span>
+              <Calculator size={14} className="absolute right-3 top-3 text-muted-foreground/50" />
               <input
                 ref={amountInputRef}
                 id="tx-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
+                type="text"
+                inputMode="decimal"
                 required
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-lg font-bold border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="0.00  (e.g. 20+40+50)"
+                value={amountInput.displayValue}
+                onChange={amountInput.handleChange}
+                onBlur={amountInput.handleBlur}
+                onKeyDown={amountInput.handleKeyDown}
+                className={cn(
+                  'w-full pl-8 pr-10 py-2 text-lg font-bold border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  amountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                )}
               />
             </div>
+            {amountInput.isExpression && amountInput.previewValue && (
+              <p className="mt-1 text-xs font-medium text-primary" role="status" aria-live="polite">
+                = {parseFloat(amountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+              </p>
+            )}
           </div>
 
           {/* FIELD 2: Category / Source (Required for Expense & Income) */}

@@ -9,6 +9,7 @@ import {
   AlertCircle,
   RefreshCw,
   X,
+  Calculator,
 } from 'lucide-react'
 import {
   useCurrentMonthBills,
@@ -17,7 +18,9 @@ import {
   usePayBill,
 } from '@/hooks/useBillsQueries'
 import { useAccounts, useExpenseCategories } from '@/hooks/useFinanceQueries'
+import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { formatMoney, parseMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 import type { RecurringExpenseOccurrence } from '@/types'
 
 // ── Pay Bill Modal ────────────────────────────────────────────────────────────
@@ -194,7 +197,7 @@ interface NewBillModalProps {
 
 function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
   const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
+  const amountInput = useCalculatorInput()
   const [dueDay, setDueDay] = useState('1')
   const [frequency, setFrequency] = useState<'monthly' | 'yearly'>('monthly')
   const [categoryId, setCategoryId] = useState('')
@@ -217,7 +220,11 @@ function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
       return
     }
 
-    const parsed = parseMoney(amount)
+    // Resolve any pending expression before submitting
+    const finalAmount = amountInput.isExpression
+      ? (amountInput.previewValue ?? amountInput.displayValue)
+      : amountInput.displayValue
+    const parsed = parseMoney(finalAmount)
     if (parsed.lessThanOrEqualTo(0)) {
       setError('Amount must be greater than zero.')
       return
@@ -243,7 +250,7 @@ function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
       {
         onSuccess: () => {
           setName('')
-          setAmount('')
+          amountInput.reset()
           setDescription('')
           onClose()
         },
@@ -311,17 +318,29 @@ function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
               <label htmlFor="bill-amount" className="block text-xs font-medium text-foreground mb-1">
                 Amount (৳) <span className="text-destructive">*</span>
               </label>
-              <input
-                id="bill-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="5000.00"
-                className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              />
+              <div className="relative">
+                <Calculator size={12} className="absolute right-3 top-2.5 text-muted-foreground/50" />
+                <input
+                  id="bill-amount"
+                  type="text"
+                  inputMode="decimal"
+                  required
+                  value={amountInput.displayValue}
+                  onChange={amountInput.handleChange}
+                  onBlur={amountInput.handleBlur}
+                  onKeyDown={amountInput.handleKeyDown}
+                  placeholder="5000.00  (e.g. 2000+3000)"
+                  className={cn(
+                    'w-full h-9 px-3 pr-9 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    amountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                  )}
+                />
+              </div>
+              {amountInput.isExpression && amountInput.previewValue && (
+                <p className="mt-1 text-[11px] font-medium text-primary" role="status" aria-live="polite">
+                  = {parseFloat(amountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="bill-due-day" className="block text-xs font-medium text-foreground mb-1">

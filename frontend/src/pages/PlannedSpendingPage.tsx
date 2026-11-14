@@ -13,6 +13,7 @@ import {
   X,
   Tag,
   TrendingDown,
+  Calculator,
 } from 'lucide-react'
 import {
   usePlannedPurchases,
@@ -22,7 +23,9 @@ import {
   useDeletePlannedPurchase,
 } from '@/hooks/useBudgetQueries'
 import { useAccounts, useExpenseCategories } from '@/hooks/useFinanceQueries'
-import { formatMoney, sumMoney } from '@/lib/money'
+import { useCalculatorInput } from '@/hooks/useCalculatorInput'
+import { formatMoney, sumMoney, parseMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 import type {
   PlannedPurchase,
   PlannedPurchasePriority,
@@ -133,20 +136,20 @@ function SettleModal({ item, onClose }: SettleModalProps) {
   const settleMutation = useSettlePlannedPurchase()
 
   const [accountId, setAccountId] = useState('')
-  const [actualAmount, setActualAmount] = useState('')
+  const actualAmountInput = useCalculatorInput()
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0])
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (item) {
-      setActualAmount(item.estimated_amount)
+      actualAmountInput.setValue(item.estimated_amount)
       setDescription(`Purchased: ${item.name}`)
       setError(null)
       const primary = accounts[0]
       if (primary) setAccountId(String(primary.id))
     }
-  }, [item, accounts])
+  }, [item, accounts, actualAmountInput])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -167,12 +170,22 @@ function SettleModal({ item, onClose }: SettleModalProps) {
       return
     }
 
+    // Resolve any pending expression before submitting
+    const finalAmount = actualAmountInput.isExpression
+      ? (actualAmountInput.previewValue ?? actualAmountInput.displayValue)
+      : actualAmountInput.displayValue
+    const parsed = parseMoney(finalAmount)
+    if (parsed.lessThanOrEqualTo(0)) {
+      setError('Please provide a valid amount greater than 0.')
+      return
+    }
+
     try {
       await settleMutation.mutateAsync({
         id: item.id,
         payload: {
           account_id: parseInt(accountId, 10),
-          actual_amount: actualAmount,
+          actual_amount: parsed.toFixed(2),
           payment_date: paymentDate,
           description,
         },
@@ -258,17 +271,27 @@ function SettleModal({ item, onClose }: SettleModalProps) {
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2 text-xs text-muted-foreground font-semibold">৳</span>
+              <Calculator size={12} className="absolute right-3 top-2 text-muted-foreground/50" />
               <input
                 id="settle-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
+                type="text"
+                inputMode="decimal"
                 required
-                value={actualAmount}
-                onChange={(e) => setActualAmount(e.target.value)}
-                className="w-full h-9 pl-7 pr-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={actualAmountInput.displayValue}
+                onChange={actualAmountInput.handleChange}
+                onBlur={actualAmountInput.handleBlur}
+                onKeyDown={actualAmountInput.handleKeyDown}
+                className={cn(
+                  'w-full h-9 pl-7 pr-9 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                  actualAmountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                )}
               />
             </div>
+            {actualAmountInput.isExpression && actualAmountInput.previewValue && (
+              <p className="mt-1 text-[11px] font-medium text-primary" role="status" aria-live="polite">
+                = {parseFloat(actualAmountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+              </p>
+            )}
           </div>
 
           <div>
@@ -338,7 +361,7 @@ function AddPlannedPurchaseModal({ isOpen, onClose }: AddModalProps) {
   const createMutation = useCreatePlannedPurchase()
 
   const [name, setName] = useState('')
-  const [estimatedAmount, setEstimatedAmount] = useState('')
+  const estimatedAmountInput = useCalculatorInput()
   const [targetDate, setTargetDate] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [priority, setPriority] = useState<PlannedPurchasePriority>('medium')
@@ -349,7 +372,7 @@ function AddPlannedPurchaseModal({ isOpen, onClose }: AddModalProps) {
   useEffect(() => {
     if (isOpen) {
       setName('')
-      setEstimatedAmount('')
+      estimatedAmountInput.reset()
       setTargetDate('')
       setCategoryId('')
       setPriority('medium')
@@ -357,7 +380,7 @@ function AddPlannedPurchaseModal({ isOpen, onClose }: AddModalProps) {
       setNotes('')
       setError(null)
     }
-  }, [isOpen])
+  }, [isOpen, estimatedAmountInput])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -377,14 +400,20 @@ function AddPlannedPurchaseModal({ isOpen, onClose }: AddModalProps) {
       setError('Please provide an item name.')
       return
     }
-    if (!estimatedAmount || parseFloat(estimatedAmount) <= 0) {
+
+    // Resolve any pending expression before submitting
+    const finalAmount = estimatedAmountInput.isExpression
+      ? (estimatedAmountInput.previewValue ?? estimatedAmountInput.displayValue)
+      : estimatedAmountInput.displayValue
+    const parsed = parseMoney(finalAmount)
+    if (parsed.lessThanOrEqualTo(0)) {
       setError('Please provide an estimated amount greater than 0.')
       return
     }
 
     const payload: CreatePlannedPurchasePayload = {
       name: name.trim(),
-      estimated_amount: estimatedAmount,
+      estimated_amount: parsed.toFixed(2),
       target_date: targetDate || null,
       category: categoryId ? parseInt(categoryId, 10) : null,
       priority,
@@ -460,18 +489,28 @@ function AddPlannedPurchaseModal({ isOpen, onClose }: AddModalProps) {
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2 text-xs text-muted-foreground font-semibold">৳</span>
+              <Calculator size={12} className="absolute right-3 top-2 text-muted-foreground/50" />
               <input
                 id="item-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
+                type="text"
+                inputMode="decimal"
                 required
-                placeholder="15000.00"
-                value={estimatedAmount}
-                onChange={(e) => setEstimatedAmount(e.target.value)}
-                className="w-full h-9 pl-7 pr-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                placeholder="15000.00  (e.g. 10000+5000)"
+                value={estimatedAmountInput.displayValue}
+                onChange={estimatedAmountInput.handleChange}
+                onBlur={estimatedAmountInput.handleBlur}
+                onKeyDown={estimatedAmountInput.handleKeyDown}
+                className={cn(
+                  'w-full h-9 pl-7 pr-9 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                  estimatedAmountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                )}
               />
             </div>
+            {estimatedAmountInput.isExpression && estimatedAmountInput.previewValue && (
+              <p className="mt-1 text-[11px] font-medium text-primary" role="status" aria-live="polite">
+                = {parseFloat(estimatedAmountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

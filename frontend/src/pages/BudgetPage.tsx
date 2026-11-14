@@ -12,13 +12,16 @@ import {
   X,
   RefreshCw,
   Sliders,
+  Calculator,
 } from 'lucide-react'
 import {
   useBudgetPerformance,
   useUpsertMonthlyBudget,
 } from '@/hooks/useBudgetQueries'
 import { useExpenseCategories } from '@/hooks/useFinanceQueries'
-import { formatMoney } from '@/lib/money'
+import { useCalculatorInput } from '@/hooks/useCalculatorInput'
+import { formatMoney, parseMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 import type { CategoryBudgetStats, BudgetStatus } from '@/types'
 
 const MONTH_NAMES = [
@@ -104,14 +107,14 @@ function SetBudgetModal({
   const { data: categories = [] } = useExpenseCategories()
   const upsertBudget = useUpsertMonthlyBudget()
 
-  const [totalAmount, setTotalAmount] = useState(currentLimit)
+  const totalAmountInput = useCalculatorInput({ initialValue: currentLimit })
   const [notes, setNotes] = useState(currentNotes)
   const [allocations, setAllocations] = useState<Record<number, string>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
-      setTotalAmount(currentLimit)
+      totalAmountInput.setValue(currentLimit)
       setNotes(currentNotes)
       const initialMap: Record<number, string> = {}
       currentAllocations.forEach((alloc) => {
@@ -122,7 +125,7 @@ function SetBudgetModal({
       setAllocations(initialMap)
       setError(null)
     }
-  }, [isOpen, currentLimit, currentNotes, currentAllocations])
+  }, [isOpen, currentLimit, currentNotes, currentAllocations, totalAmountInput])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,7 +148,12 @@ function SetBudgetModal({
     e.preventDefault()
     setError(null)
 
-    if (!totalAmount || parseFloat(totalAmount) <= 0) {
+    // Resolve any pending expression before submitting
+    const finalAmount = totalAmountInput.isExpression
+      ? (totalAmountInput.previewValue ?? totalAmountInput.displayValue)
+      : totalAmountInput.displayValue
+    const parsed = parseMoney(finalAmount)
+    if (parsed.lessThanOrEqualTo(0)) {
       setError('Please provide a valid budget limit greater than 0.')
       return
     }
@@ -161,7 +169,7 @@ function SetBudgetModal({
       await upsertBudget.mutateAsync({
         year,
         month,
-        total_amount: totalAmount,
+        total_amount: parsed.toFixed(2),
         notes,
         allocations: payloadAllocations,
       })
@@ -216,18 +224,28 @@ function SetBudgetModal({
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2 text-xs text-muted-foreground font-semibold">৳</span>
+              <Calculator size={12} className="absolute right-3 top-2 text-muted-foreground/50" />
               <input
                 id="total-amount"
-                type="number"
-                step="0.01"
-                min="1"
+                type="text"
+                inputMode="decimal"
                 required
-                placeholder="50000.00"
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value)}
-                className="w-full h-9 pl-7 pr-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                placeholder="50000.00  (e.g. 30000+20000)"
+                value={totalAmountInput.displayValue}
+                onChange={totalAmountInput.handleChange}
+                onBlur={totalAmountInput.handleBlur}
+                onKeyDown={totalAmountInput.handleKeyDown}
+                className={cn(
+                  'w-full h-9 pl-7 pr-9 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                  totalAmountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
+                )}
               />
             </div>
+            {totalAmountInput.isExpression && totalAmountInput.previewValue && (
+              <p className="mt-1 text-[11px] font-medium text-primary" role="status" aria-live="polite">
+                = {parseFloat(totalAmountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+              </p>
+            )}
             <p className="text-[11px] text-muted-foreground mt-1">
               Variable day-to-day limit (groceries, leisure, transport). Fixed bills are tracked separately.
             </p>
