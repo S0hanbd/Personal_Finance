@@ -42,9 +42,9 @@
 | **Phase 3** | Recurring Bills, Fixed Expenses & Future Financial Obligations | **COMPLETED & VERIFIED** |
 | **Phase 4** | Monthly Budget Management & Planned Purchases | **COMPLETED & VERIFIED** |
 | **Phase 5** | Lending, Borrowing & Person Management | **COMPLETED & VERIFIED** |
-| **Phase 6** | Financial Analytics, Reports & Recharts | Pending |
-| **Phase 7** | Independent Project Finance Workspace | Pending |
-| **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | Pending |
+| **Phase 6** | Financial Analytics, Reports & Recharts | **COMPLETED & VERIFIED** |
+| **Phase 7** | Independent Project Finance Workspace | **COMPLETED & VERIFIED** |
+| **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | **COMPLETED & VERIFIED** |
 
 ---
 
@@ -60,8 +60,8 @@
 | `budgets` | MonthlyBudget, BudgetCategory, PlannedPurchase | models.py, services.py, views.py | `/api/budgets/` |
 | `obligations` | FinancialObligation, OblangementPayment | models.py, services.py, views.py | `/api/obligations/` |
 | `lending` | Person, LoanRecord, LoanSettlement | models.py, services.py, views.py | `/api/lending/` |
-| `analytics` | (none — aggregation only) | services.py, views.py | `/api/analytics/` (placeholder) |
-| `projects` | (Phase 7 — pending) | models.py, views.py | `/api/projects/` |
+| `analytics` | (none — aggregation only) | services.py, views.py | `/api/analytics/` |
+| `projects` | Project, ProjectItem | models.py, serializers.py, views.py | `/api/projects/` |
 | `core` | — | utils.py (shared utilities) | — |
 
 ### Backend Services (Business Logic)
@@ -69,7 +69,7 @@
 - `bills/services.py`: `generate_bill_occurrences()`, `pay_bill_occurrence()` — schedule + payment flow
 - `budgets/services.py`: `calculate_budget_performance()` — variable spending exclusion of recurring bills
 - `lending/services.py`: `lend_money()`, `borrow_money()`, `record_settlement()` — loan lifecycle
-- `analytics/services.py`: Placeholder — 6 aggregation functions (Phase 6)
+- `analytics/services.py`: 6 aggregation functions — monthly income/expense, spending by category, spending trends, account balance history, top categories, budget vs actual
 
 ### Frontend Structure
 ```
@@ -88,8 +88,8 @@ frontend/src/
     PlannedSpendingPage.tsx   — Planned purchases lifecycle
     ObligationsPage.tsx       — Financial obligations
     PeoplePage.tsx            — Lending/borrowing + person directory
-    AnalyticsPage.tsx         — Placeholder (Phase 6)
-    ProjectsPage.tsx          — Placeholder (Phase 7)
+    AnalyticsPage.tsx         — 6 chart types with period selector
+    ProjectsPage.tsx          — Project planning with item tracking
     SettingsPage.tsx          — User settings
     auth/LoginPage.tsx        — Login form
     auth/RegisterPage.tsx     — Registration form
@@ -98,6 +98,7 @@ frontend/src/
     layout/                   — AppLayout, Header, Sidebar
     shared/                   — EmptyState, ErrorState, SummaryCard, KeyboardShortcutsHelp
     transactions/             — QuickAddModal (hooks wrapper + content pattern)
+    analytics/                — PeriodSelector, 6 Recharts chart components
 
   hooks/                      — React Query hooks (1 per domain)
     useAuth.ts                — Auth mutations + protected query wrapper
@@ -107,12 +108,15 @@ frontend/src/
     useBudgetQueries.ts       — Budget + planned purchase queries
     useObligationsQueries.ts  — Obligation queries
     useLendingQueries.ts      — Person + loan queries
+    useAnalyticsQueries.ts    — Analytics chart data queries
+    useProjectsQueries.ts     — Project and project item queries
     useCalculatorInput.ts     — Calculator input logic (shared)
     useKeyboardShortcuts.ts   — Global keyboard shortcuts
 
   types/                      — TypeScript interfaces (money as string)
     accounts.ts, auth.ts, bills.ts, budgets.ts,
-    lending.ts, obligations.ts, transactions.ts, index.ts
+    lending.ts, obligations.ts, transactions.ts,
+    analytics.ts, projects.ts, index.ts
 
   lib/
     api.ts                    — Axios instance + interceptors
@@ -121,7 +125,7 @@ frontend/src/
     utils.ts                  — cn() (clsx + tailwind-merge)
 
   store/
-    authStore.ts              — Zustand auth store (token, user, refresh)
+    authStore.ts              — Zustand auth store (token, user, refreshAccessToken)
 ```
 
 ### API Endpoints Summary
@@ -134,7 +138,8 @@ frontend/src/
 | Budgets | `GET/POST /api/budgets/monthly/`, `GET /api/budgets/monthly/performance/`, `GET/POST /api/budgets/planned-purchases/`, `POST /api/budgets/planned-purchases/{id}/purchase/` |
 | Obligations | `GET/POST /api/obligations/`, `GET/PUT/DELETE /api/obligations/{id}/`, `POST /api/obligations/{id}/pay/` |
 | Lending | `GET/POST /api/lending/people/`, `GET/POST /api/lending/loans/`, `POST /api/lending/loans/{id}/settle/` |
-| Analytics | Placeholder — 6 endpoints planned (Phase 6) |
+| Analytics | `GET /api/analytics/monthly_trend/`, `GET /api/analytics/category_breakdown/`, `GET /api/analytics/spending_trends/`, `GET /api/analytics/balance_history/`, `GET /api/analytics/top_categories/`, `GET /api/analytics/budget_vs_actual/` |
+| Projects | `GET/POST /api/projects/`, `GET/PUT/DELETE /api/projects/{id}/`, `GET/POST /api/projects/{id}/items/`, `GET/PUT/DELETE /api/projects/{id}/items/{item_id}/` |
 
 ### Key Patterns to Follow
 1. **Backend app structure:** models → serializers → services → views → urls → tests
@@ -239,4 +244,19 @@ frontend/src/
 - Frontend: `npm run typecheck` ✓, `npm run lint` ✓
 - Git: committed and pushed to `origin/main`
 
-### Next: Phase 6 — Financial Analytics, Reports & Recharts
+### Phase 6 — Financial Analytics, Reports & Recharts (Completed):
+1. **Backend (`apps/analytics/`):** 6 aggregation services (monthly income/expense, spending by category, spending trends with auto-granularity, account balance history, top categories, budget vs actual). AnalyticsViewSet with 6 `@action` endpoints. 17 tests passing.
+2. **Frontend:** `types/analytics.ts`, `hooks/useAnalyticsQueries.ts`, 6 Recharts chart components (ComposedChart, PieChart, LineChart, AreaChart, horizontal BarChart, grouped BarChart), PeriodSelector, full AnalyticsPage with 2-column grid.
+
+### Phase 7 — Independent Project Finance Workspace (Completed):
+1. **Backend (`apps/projects/`):** Models — `Project`, `ProjectItem`. Transaction model updated with nullable `project_item` FK. 4 serializers with computed `actual_spent`, `total_estimated`, `remaining`, `percent_spent`. ProjectViewSet and ProjectItemViewSet. 13 tests passing.
+2. **Frontend:** `types/projects.ts`, `hooks/useProjectsQueries.ts`, full ProjectsPage with project list, summary cards, detail view with editable items table, per-item progress bars. QuickAddModal updated with optional project item selector.
+
+### Phase 8 — Production Hardening, Security Audit & Closed-Loop QA (Completed):
+1. **Security:** Fixed ALLOWED_HOSTS wildcard, added HSTS (1 year), proxy headers, CSRF_TRUSTED_ORIGINS. DRF throttling (AnonRateThrottle, UserRateThrottle). LoginThrottle/RegisterThrottle for auth endpoints. Whitenoise for static files.
+2. **Docker:** Updated Dockerfile with gunicorn entrypoint (4 workers). Added `backend-prod` service to docker-compose.yml with health check.
+3. **Frontend Security:** Token refresh interceptor in `api.ts` with retry queue and lock flag. `refreshAccessToken` action in authStore.
+4. **Tests:** Added ownership tests for accounts, transactions, lending, and projects. Added `other_user`/`other_auth_client` fixtures. 67 total tests passing.
+5. **Config:** Created `.env.example` template. Added `gunicorn` and `whitenoise` to requirements.txt.
+
+### Next: Phase 9 — (To be determined)
