@@ -45,6 +45,7 @@
 | **Phase 6** | Financial Analytics, Reports & Recharts | **COMPLETED & VERIFIED** |
 | **Phase 7** | Independent Project Finance Workspace | **COMPLETED & VERIFIED** |
 | **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | **COMPLETED & VERIFIED** |
+| **Phase 9** | Export & Reporting | **COMPLETED & VERIFIED** |
 
 ---
 
@@ -140,6 +141,7 @@ frontend/src/
 | Lending | `GET/POST /api/lending/people/`, `GET/POST /api/lending/loans/`, `POST /api/lending/loans/{id}/settle/` |
 | Analytics | `GET /api/analytics/monthly_trend/`, `GET /api/analytics/category_breakdown/`, `GET /api/analytics/spending_trends/`, `GET /api/analytics/balance_history/`, `GET /api/analytics/top_categories/`, `GET /api/analytics/budget_vs_actual/` |
 | Projects | `GET/POST /api/projects/`, `GET/PUT/DELETE /api/projects/{id}/`, `GET/POST /api/projects/{id}/items/`, `GET/PUT/DELETE /api/projects/{id}/items/{item_id}/` |
+| Reports | `GET /api/reports/export_csv/`, `GET /api/reports/monthly_report/`, `GET /api/reports/budget_report/`, `GET /api/reports/project_report/` |
 
 ### Key Patterns to Follow
 1. **Backend app structure:** models → serializers → services → views → urls → tests
@@ -259,4 +261,9 @@ frontend/src/
 4. **Tests:** Added ownership tests for accounts, transactions, lending, and projects. Added `other_user`/`other_auth_client` fixtures. 67 total tests passing.
 5. **Config:** Created `.env.example` template. Added `gunicorn` and `whitenoise` to requirements.txt.
 
-### Next: Phase 9 — (To be determined)
+### Phase 9 — Export & Reporting (Completed):
+1. **Backend (`apps/reports/`):** 4 services — `export_transactions_csv()` (Django csv module), `generate_monthly_report()` (reportlab PDF with income/expense summary and category breakdown), `generate_budget_report()` (budget vs actual tables), `generate_project_report()` (item-level breakdown with transactions). ReportsViewSet with 4 `@action` endpoints. 19 tests passing.
+2. **Frontend:** `types/reports.ts`, `hooks/useReportsQueries.ts` (blob download functions), reusable `ExportButton` component with dropdown. Integrated into TransactionsPage (CSV), AnalyticsPage (monthly PDF), BudgetPage (budget PDF), ProjectsPage (project PDF).
+3. **Dependencies:** Added `reportlab==4.2.2` to requirements.txt.
+
+### Next: Phase 10 — (To be determined)

@@ -18,6 +18,8 @@ import {
   useBudgetPerformance,
   useUpsertMonthlyBudget,
 } from '@/hooks/useBudgetQueries'
+import { ExportButton } from '@/components/shared/ExportButton'
+import { downloadBudgetReport } from '@/hooks/useReportsQueries'
 import { useExpenseCategories } from '@/hooks/useFinanceQueries'
 import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { formatMoney, parseMoney } from '@/lib/money'
@@ -436,6 +438,17 @@ export function BudgetPage() {
               </>
             )}
           </button>
+          <ExportButton
+            options={[
+              {
+                label: 'Budget Report (PDF)',
+                icon: 'pdf',
+                onClick: async () => {
+                  await downloadBudgetReport({ year: selectedYear, month: selectedMonth })
+                },
+              },
+            ]}
+          />
         </div>
       </div>
 

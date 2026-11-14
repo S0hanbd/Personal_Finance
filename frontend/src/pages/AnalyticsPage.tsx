@@ -7,6 +7,8 @@ import {
   useTopCategories,
   useBudgetVsActual,
 } from '@/hooks/useAnalyticsQueries'
+import { ExportButton } from '@/components/shared/ExportButton'
+import { downloadMonthlyReport } from '@/hooks/useReportsQueries'
 import { PeriodSelector } from '@/components/analytics/PeriodSelector'
 import { MonthlyIncomeExpenseChart } from '@/components/analytics/MonthlyIncomeExpenseChart'
 import { SpendingByCategoryChart } from '@/components/analytics/SpendingByCategoryChart'
@@ -85,7 +87,21 @@ function AnalyticsPageContent({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Financial Analytics</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-foreground">Financial Analytics</h1>
+          <ExportButton
+            options={[
+              {
+                label: 'Monthly Report (PDF)',
+                icon: 'pdf',
+                onClick: async () => {
+                  const now = new Date()
+                  await downloadMonthlyReport({ year: now.getFullYear(), month: now.getMonth() + 1 })
+                },
+              },
+            ]}
+          />
+        </div>
         <PeriodSelector onDateRangeChange={onDateRangeChange} />
       </div>
 

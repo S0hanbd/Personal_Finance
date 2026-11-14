@@ -17,6 +17,8 @@ import {
   useUpdateProjectItem,
   useDeleteProjectItem,
 } from '@/hooks/useProjectsQueries'
+import { ExportButton } from '@/components/shared/ExportButton'
+import { downloadProjectReport } from '@/hooks/useReportsQueries'
 import { useCalculatorInput } from '@/hooks/useCalculatorInput'
 import { formatMoney, parseMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -506,6 +508,17 @@ function ProjectDetailView({ projectId, onBack }: {
             <p className="text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
+        <ExportButton
+          options={[
+            {
+              label: 'Project Report (PDF)',
+              icon: 'pdf',
+              onClick: async () => {
+                await downloadProjectReport({ project_id: project.id })
+              },
+            },
+          ]}
+        />
         <span className={cn(
           'px-2 py-1 text-xs font-medium rounded-full',
           project.status === 'active' && 'bg-green-100 text-green-800',

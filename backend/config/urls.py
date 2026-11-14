@@ -17,6 +17,7 @@ def api_root(request):
             'lending': '/api/lending/',
             'analytics': '/api/analytics/',
             'projects': '/api/projects/',
+            'reports': '/api/reports/',
             'admin': '/admin/',
             'token_refresh': '/api/token/refresh/'
         }
@@ -34,5 +35,6 @@ urlpatterns = [
     path('api/lending/', include('apps.lending.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
     path('api/projects/', include('apps.projects.urls')),
+    path('api/reports/', include('apps.reports.urls')),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
