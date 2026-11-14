@@ -41,7 +41,7 @@
 | **Phase 2.5** | Record Transaction Modal Redesign (UI/UX) | **COMPLETED & VERIFIED** |
 | **Phase 3** | Recurring Bills, Fixed Expenses & Future Financial Obligations | **COMPLETED & VERIFIED** |
 | **Phase 4** | Monthly Budget Management & Planned Purchases | **COMPLETED & VERIFIED** |
-| **Phase 5** | Lending, Borrowing & Person Management | **UP NEXT** |
+| **Phase 5** | Lending, Borrowing & Person Management | **COMPLETED & VERIFIED** |
 | **Phase 6** | Financial Analytics, Reports & Recharts | Pending |
 | **Phase 7** | Independent Project Finance Workspace | Pending |
 | **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | Pending |
@@ -123,26 +123,23 @@
 
 ---
 
-## 5. Immediate Next Step for Incoming Agent: Phase 5
+## 5. Phase 5 Completed — Lending, Borrowing & Person Management
 
-### Objective:
-Build **Phase 5 — Lending, Borrowing & Person Management**.
-
-### Target Scope:
+### What Was Built:
 1. **Backend (`apps/lending/`):**
-   - Models:
-     - `Person`: user, name, phone, email, notes, total_lent (`DecimalField`), total_borrowed (`DecimalField`).
-     - `LoanRecord`: user, person (FK), loan_type (`lent` vs. `borrowed`), initial_amount (`DecimalField`), remaining_amount (`DecimalField`), due_date, status (`active`, `settled`, `defaulted`), notes.
-     - `LoanSettlement`: loan (FK), transaction (FK), amount (`DecimalField`), settlement_date, notes.
-   - Atomic services to lend money (creates lending expense / deduction from account), borrow money (creates borrowing income / deposit to account), and record partial or full repayments.
-   - Serializers, ViewSets, and integration tests.
-2. **Frontend (`PeoplePage.tsx` & `useLendingQueries.ts`):**
-   - Summary cards: Total Money Lent (Receivable), Total Money Borrowed (Payable), Net Counterparty Position.
-   - Person cards / directory with individual debt balance sheets.
-   - "Lend / Borrow" modal with counterparty selection or creation.
-   - "Record Repayment / Collection" modal with account selection and balance update.
+   - Models: `Person` (user, name, phone, email, total_lent, total_borrowed), `LoanRecord` (person, loan_type, initial_amount, remaining_amount, due_date, status), `LoanSettlement` (loan, transaction FK, amount, settlement_date).
+   - Services: `lend_money()` — deducts account via `lending` transaction; `borrow_money()` — adds to account via `borrowing` transaction; `record_settlement()` — creates `loan_collection`/`loan_repayment`, decrements remaining, auto-settles at zero.
+   - Serializers: 6 serializers (Person, LoanRecord, LoanSettlement, LendMoney, BorrowMoney, SettleLoan).
+   - ViewSets: PersonViewSet (CRUD + summary), LoanRecordViewSet (lend/borrow/settle actions), LoanSettlementViewSet (read-only).
+   - Tests: 11/11 passing (6 service + 5 API integration).
+2. **Frontend:**
+   - `src/types/lending.ts`: Person, LoanRecord, LoanSettlement, LendingSummary interfaces.
+   - `src/hooks/useLendingQueries.ts`: usePeople, useLendingSummary, useLoans, useLendMoney, useBorrowMoney, useSettleLoan, useCreatePerson.
+   - `src/pages/PeoplePage.tsx`: Summary cards (Total Lent, Total Borrowed, Net Position), person directory table, active loans table, Lend/Borrow modals with calculator input, Settle modal.
 
-### Quality Gate Check Before Session Sign-off:
-- Backend: `python manage.py check`, `ruff check .`, `pytest` (all pass)
-- Frontend: `pnpm.cmd typecheck`, `pnpm.cmd lint`, `pnpm.cmd test`, `pnpm.cmd run build` (all pass)
-- Mandatory git commit and push to `git push origin main`.
+### Verification:
+- Backend: `python manage.py check` ✓, `ruff check .` ✓, `pytest` 11/11 ✓
+- Frontend: `npm run typecheck` ✓, `npm run lint` ✓
+- Git: committed and pushed to `origin/main`
+
+### Next: Phase 6 — Financial Analytics, Reports & Recharts
