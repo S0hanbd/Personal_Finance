@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import { X, Plus, AlertCircle, ArrowRightLeft, TrendingDown, TrendingUp, Calculator } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Plus, AlertCircle, ArrowRightLeft, TrendingDown, TrendingUp, Calculator, Check } from 'lucide-react'
+import Decimal from 'decimal.js'
 import {
   useAccounts,
   useExpenseCategories,
@@ -21,6 +22,12 @@ interface QuickAddModalProps {
 }
 
 export type TabType = 'expense' | 'income' | 'transfer'
+
+const TAB_CONFIG: Record<TabType, { label: string; icon: typeof TrendingDown; color: string; ringColor: string; submitLabel: string }> = {
+  expense: { label: 'Expense', icon: TrendingDown, color: 'bg-danger text-white', ringColor: 'ring-danger/40', submitLabel: 'Add expense' },
+  income: { label: 'Income', icon: TrendingUp, color: 'bg-success text-white', ringColor: 'ring-success/40', submitLabel: 'Add income' },
+  transfer: { label: 'Transfer', icon: ArrowRightLeft, color: 'bg-primary text-white', ringColor: 'ring-primary/40', submitLabel: 'Record transfer' },
+}
 
 export function QuickAddModal({
   isOpen,
@@ -46,10 +53,16 @@ export function QuickAddModal({
   const [newAccountName, setNewAccountName] = useState('')
   const [newAccountType, setNewAccountType] = useState('cash')
   const [newAccountBalance, setNewAccountBalance] = useState('0.00')
+  const [creationError, setCreationError] = useState<string | null>(null)
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  const dialogRef = useRef<HTMLDivElement>(null)
   const amountInputRef = useRef<HTMLInputElement>(null)
+  const newCategoryInputRef = useRef<HTMLInputElement>(null)
+  const newSourceInputRef = useRef<HTMLInputElement>(null)
+  const newAccountNameInputRef = useRef<HTMLInputElement>(null)
 
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts()
   const { data: categories = [] } = useExpenseCategories()
@@ -71,84 +84,157 @@ export function QuickAddModal({
     }
   }, [accounts, accountId, destinationAccountId])
 
-  // Reset and focus on amount input when dialog opens
+  // Reset and focus when dialog opens
   useEffect(() => {
     if (isOpen) {
       setErrorMessage(null)
+      setSuccessMessage(null)
+      setCreationError(null)
       if (initialTab) setActiveTab(initialTab)
       if (initialAccountId) setAccountId(initialAccountId)
+      amountInput.reset()
+      setDescription('')
+      setCategoryId('')
+      setIncomeSourceId('')
+      setNewCategoryName('')
+      setNewSourceName('')
+      setNewAccountName('')
+      setNewAccountBalance('0.00')
+      setShowNewCategory(false)
+      setShowNewSource(false)
+      setShowNewAccount(false)
+      setTransactionDate(new Date().toISOString().split('T')[0])
       setTimeout(() => amountInputRef.current?.focus(), 50)
     }
   }, [isOpen, initialTab, initialAccountId])
 
-  // Escape key handler
+  // Escape key + focus trap
   useEffect(() => {
+    if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
         onClose()
       }
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
   if (!isOpen) return null
 
   const isPending = createTxMutation.isPending || createTransferMutation.isPending
 
-  const handleCreateNewCategory = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newCategoryName.trim()) return
+  // --- Category creation ---
+  const priorCategoryIdRef = useRef(categoryId)
+
+  const handleCreateNewCategory = useCallback(async () => {
+    setCreationError(null)
+    const name = newCategoryName.trim()
+    if (!name) {
+      setCreationError('Category name is required.')
+      newCategoryInputRef.current?.focus()
+      return
+    }
     try {
-      const created = await createCategoryMutation.mutateAsync(newCategoryName.trim())
+      const created = await createCategoryMutation.mutateAsync(name)
       setCategoryId(created.id.toString())
       setNewCategoryName('')
       setShowNewCategory(false)
+      setCreationError(null)
     } catch {
-      setErrorMessage('Could not create category. Please try a different name.')
+      setCreationError('Could not create category. Please try a different name.')
     }
-  }
+  }, [newCategoryName, createCategoryMutation])
 
-  const handleCreateNewSource = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newSourceName.trim()) return
+  const handleCancelCategory = useCallback(() => {
+    setCategoryId(priorCategoryIdRef.current)
+    setNewCategoryName('')
+    setShowNewCategory(false)
+    setCreationError(null)
+  }, [])
+
+  // --- Income source creation ---
+  const priorSourceIdRef = useRef(incomeSourceId)
+
+  const handleCreateNewSource = useCallback(async () => {
+    setCreationError(null)
+    const name = newSourceName.trim()
+    if (!name) {
+      setCreationError('Source name is required.')
+      newSourceInputRef.current?.focus()
+      return
+    }
     try {
-      const created = await createSourceMutation.mutateAsync(newSourceName.trim())
+      const created = await createSourceMutation.mutateAsync(name)
       setIncomeSourceId(created.id.toString())
       setNewSourceName('')
       setShowNewSource(false)
+      setCreationError(null)
     } catch {
-      setErrorMessage('Could not create income source. Please try a different name.')
+      setCreationError('Could not create income source. Please try a different name.')
     }
-  }
+  }, [newSourceName, createSourceMutation])
 
-  const handleCreateNewAccount = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newAccountName.trim()) return
+  const handleCancelSource = useCallback(() => {
+    setIncomeSourceId(priorSourceIdRef.current)
+    setNewSourceName('')
+    setShowNewSource(false)
+    setCreationError(null)
+  }, [])
+
+  // --- Account creation ---
+  const priorAccountIdRef = useRef(accountId)
+
+  const handleCreateNewAccount = useCallback(async () => {
+    setCreationError(null)
+    const name = newAccountName.trim()
+    if (!name) {
+      setCreationError('Account name is required.')
+      newAccountNameInputRef.current?.focus()
+      return
+    }
     try {
       const created = await createAccountMutation.mutateAsync({
-        name: newAccountName.trim(),
+        name,
         account_type: newAccountType,
         opening_balance: newAccountBalance || '0.00',
       })
       setAccountId(created.id.toString())
       setNewAccountName('')
+      setNewAccountBalance('0.00')
       setShowNewAccount(false)
+      setCreationError(null)
     } catch {
-      setErrorMessage('Could not create account. Please check the name and try again.')
+      setCreationError('Could not create account. Please check the name and try again.')
     }
-  }
+  }, [newAccountName, newAccountType, newAccountBalance, createAccountMutation])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCancelAccount = useCallback(() => {
+    setAccountId(priorAccountIdRef.current)
+    setNewAccountName('')
+    setNewAccountBalance('0.00')
+    setShowNewAccount(false)
+    setCreationError(null)
+  }, [])
+
+  // --- Main submit ---
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
+    setSuccessMessage(null)
+
+    // Guard against duplicate submissions
+    if (isPending) return
 
     // Resolve any pending expression before submitting
     const finalAmount = amountInput.isExpression
       ? (amountInput.previewValue ?? amountInput.displayValue)
       : amountInput.displayValue
-    const parsedAmount = parseFloat(finalAmount)
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+
+    // Use Decimal for validation — no parseFloat
+    const amountDecimal = new Decimal(finalAmount)
+    if (amountDecimal.isNaN() || amountDecimal.lte(0)) {
       setErrorMessage('Please enter a valid amount greater than zero.')
       return
     }
@@ -159,6 +245,8 @@ export function QuickAddModal({
     }
 
     try {
+      const amountStr = amountDecimal.toFixed(2)
+
       if (activeTab === 'transfer') {
         if (!destinationAccountId || destinationAccountId === accountId) {
           setErrorMessage('Please choose a different destination account.')
@@ -167,26 +255,31 @@ export function QuickAddModal({
         await createTransferMutation.mutateAsync({
           source_account: parseInt(accountId, 10),
           destination_account: parseInt(destinationAccountId, 10),
-          amount: parsedAmount.toFixed(2),
+          amount: amountStr,
           description: description.trim(),
           transaction_date: transactionDate,
         })
+        setSuccessMessage(`Transferred ৳${amountStr} successfully.`)
       } else {
         await createTxMutation.mutateAsync({
           account: parseInt(accountId, 10),
           transaction_type: activeTab,
-          amount: parsedAmount.toFixed(2),
+          amount: amountStr,
           category: activeTab === 'expense' && categoryId ? parseInt(categoryId, 10) : null,
           income_source: activeTab === 'income' && incomeSourceId ? parseInt(incomeSourceId, 10) : null,
           description: description.trim(),
           transaction_date: transactionDate,
         })
+        const typeLabel = activeTab === 'expense' ? 'Expense' : 'Income'
+        setSuccessMessage(`${typeLabel} of ৳${amountStr} saved.`)
       }
 
       // Reset and close on success
-      amountInput.reset()
-      setDescription('')
-      onClose()
+      setTimeout(() => {
+        amountInput.reset()
+        setDescription('')
+        onClose()
+      }, 600)
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: Record<string, string[]> } }
       if (errorObj?.response?.data) {
@@ -198,130 +291,170 @@ export function QuickAddModal({
         setErrorMessage('Failed to save transaction. Please check your network and inputs.')
       }
     }
+  }, [isPending, amountInput, accountId, destinationAccountId, activeTab, categoryId, incomeSourceId, description, transactionDate, createTransferMutation, createTxMutation, onClose])
+
+  // Format balance for display
+  const formatBalance = (bal: string) => {
+    try {
+      return new Decimal(bal).toFixed(2)
+    } catch {
+      return bal
+    }
   }
+
+  // Format preview total
+  const formatPreview = (val: string) => {
+    try {
+      return new Decimal(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    } catch {
+      return val
+    }
+  }
+
+  const tabConfig = TAB_CONFIG[activeTab]
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="quick-add-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
-      <div className="relative w-full max-w-lg bg-white rounded-xl shadow-xl border border-border p-6 max-h-[90vh] overflow-y-auto">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quick-add-title"
+        className="relative w-full max-w-lg bg-white rounded-xl shadow-xl border border-border p-6 max-h-[90vh] overflow-y-auto"
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
-          <div>
-            <h2 id="quick-add-title" className="text-lg font-bold text-foreground">
-              Record Transaction
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Quick 3-field personal ledger entry</p>
-          </div>
+          <h2 id="quick-add-title" className="text-lg font-bold text-foreground">
+            Record transaction
+          </h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="p-2 min-w-[24px] min-h-[24px] text-muted-foreground hover:text-foreground rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex bg-muted p-1 rounded-lg my-4" role="tablist" aria-label="Transaction Type">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'expense'}
-            onClick={() => setActiveTab('expense')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all',
-              activeTab === 'expense'
-                ? 'bg-danger text-white shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <TrendingDown size={14} />
-            Expense
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'income'}
-            onClick={() => setActiveTab('income')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all',
-              activeTab === 'income'
-                ? 'bg-success text-white shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <TrendingUp size={14} />
-            Income
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'transfer'}
-            onClick={() => setActiveTab('transfer')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-md transition-all',
-              activeTab === 'transfer'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <ArrowRightLeft size={14} />
-            Transfer
-          </button>
-        </div>
+        {/* Transaction type selector */}
+        <fieldset className="mt-4 mb-2">
+          <legend className="sr-only">Transaction type</legend>
+          <div className="flex bg-muted p-1 rounded-lg" role="radiogroup" aria-label="Transaction type">
+            {(['expense', 'income', 'transfer'] as TabType[]).map((tab) => {
+              const config = TAB_CONFIG[tab]
+              const Icon = config.icon
+              const isSelected = activeTab === tab
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-md transition-all min-h-[24px]',
+                    isSelected
+                      ? `${config.color} shadow-sm`
+                      : 'text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-ring'
+                  )}
+                >
+                  <Icon size={14} />
+                  {config.label}
+                  {isSelected && <Check size={12} />}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
 
         {/* Error Alert */}
         {errorMessage && (
-          <div role="alert" className="mb-4 p-3 bg-danger/10 border border-danger/30 rounded-lg flex items-start gap-2 text-xs text-danger">
+          <div role="alert" className="mb-4 p-3 bg-danger/10 border border-danger/30 rounded-lg flex items-start gap-2 text-sm text-danger">
             <AlertCircle size={16} className="shrink-0 mt-0.5" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        {/* Accounts Check */}
+        {/* Success Alert */}
+        {successMessage && (
+          <div role="status" className="mb-4 p-3 bg-success/10 border border-success/30 rounded-lg flex items-start gap-2 text-sm text-success">
+            <Check size={16} className="shrink-0 mt-0.5" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {/* Creation error */}
+        {creationError && (
+          <div role="alert" className="mb-2 p-2 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
+            {creationError}
+          </div>
+        )}
+
+        {/* No accounts warning */}
         {accounts.length === 0 && !accountsLoading && !showNewAccount && (
-          <div className="p-4 mb-4 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
+          <div className="p-4 mb-4 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
             <p className="font-semibold mb-1">No accounts found</p>
-            <p className="mb-3">You need at least one financial account (e.g. Cash, Bank) before recording transactions.</p>
+            <p className="mb-3">Create at least one account before recording transactions.</p>
             <button
               type="button"
               onClick={() => setShowNewAccount(true)}
-              className="px-3 py-1.5 bg-primary text-white rounded font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="px-3 py-1.5 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[24px]"
             >
-              + Create First Account
+              Create first account
             </button>
           </div>
         )}
 
         {/* Inline Account Creator */}
         {showNewAccount && (
-          <form onSubmit={handleCreateNewAccount} className="p-3 mb-4 bg-muted/60 border border-border rounded-lg space-y-2 text-xs">
-            <div className="flex justify-between items-center font-semibold text-foreground">
-              <span>Create New Account</span>
-              <button type="button" onClick={() => setShowNewAccount(false)} className="text-muted-foreground">Cancel</button>
+          <div className="p-3 mb-4 bg-muted/60 border border-border rounded-lg space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-semibold text-foreground">Create New Account</span>
+              <button
+                type="button"
+                onClick={handleCancelAccount}
+                className="text-xs text-muted-foreground hover:text-foreground min-w-[24px] min-h-[24px]"
+              >
+                Cancel account
+              </button>
             </div>
             <div>
-              <label className="block mb-0.5">Account Name *</label>
+              <label htmlFor="new-account-name" className="block text-xs font-medium text-foreground mb-0.5">
+                Account name
+              </label>
               <input
+                id="new-account-name"
+                ref={newAccountNameInputRef}
                 type="text"
                 required
-                placeholder="e.g. Cash in Hand, Bank, PayCash"
+                placeholder="e.g. Cash, Bank, bKash"
                 value={newAccountName}
                 onChange={(e) => setNewAccountName(e.target.value)}
-                className="w-full px-2 py-1.5 border border-input rounded text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleCreateNewAccount()
+                  }
+                }}
+                className="w-full px-3 py-2 border border-input rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block mb-0.5">Type</label>
+                <label htmlFor="new-account-type" className="block text-xs font-medium text-foreground mb-0.5">
+                  Type
+                </label>
                 <select
+                  id="new-account-type"
                   value={newAccountType}
                   onChange={(e) => setNewAccountType(e.target.value)}
-                  className="w-full px-2 py-1.5 border border-input rounded text-xs bg-white"
+                  className="w-full px-3 py-2 border border-input rounded-md text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="cash">Cash</option>
                   <option value="bank">Bank</option>
@@ -330,100 +463,139 @@ export function QuickAddModal({
                 </select>
               </div>
               <div>
-                <label className="block mb-0.5">Opening Balance (৳)</label>
+                <label htmlFor="new-account-balance" className="block text-xs font-medium text-foreground mb-0.5">
+                  Starting balance (BDT)
+                </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  id="new-account-balance"
+                  type="text"
+                  inputMode="decimal"
                   value={newAccountBalance}
                   onChange={(e) => setNewAccountBalance(e.target.value)}
-                  className="w-full px-2 py-1.5 border border-input rounded text-xs"
+                  className="w-full px-3 py-2 border border-input rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={createAccountMutation.isPending}
-              className="w-full py-1.5 bg-primary text-white rounded font-medium hover:bg-primary/90"
-            >
-              {createAccountMutation.isPending ? 'Saving...' : 'Add Account'}
-            </button>
-          </form>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCreateNewAccount}
+                disabled={createAccountMutation.isPending}
+                className="flex-1 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 min-h-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {createAccountMutation.isPending ? 'Saving...' : 'Add account'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelAccount}
+                className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-md hover:bg-muted min-h-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* FIELD 1: Amount (Required) */}
+          {/* Amount */}
           <div>
-            <label htmlFor="tx-amount" className="block text-xs font-semibold text-foreground uppercase tracking-wide mb-1">
-              Amount (BDT ৳) *
+            <label htmlFor="tx-amount" className="block text-sm font-medium text-foreground mb-1">
+              Amount (BDT)
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-base font-bold text-muted-foreground">৳</span>
-              <Calculator size={14} className="absolute right-3 top-3 text-muted-foreground/50" />
+              <button
+                type="button"
+                aria-label="Open calculator"
+                className="absolute right-2 top-2 p-1 text-muted-foreground hover:text-foreground rounded min-w-[24px] min-h-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                tabIndex={-1}
+              >
+                <Calculator size={16} />
+              </button>
               <input
                 ref={amountInputRef}
                 id="tx-amount"
                 type="text"
                 inputMode="decimal"
                 required
-                placeholder="0.00  (e.g. 20+40+50)"
+                placeholder=""
                 value={amountInput.displayValue}
                 onChange={amountInput.handleChange}
                 onBlur={amountInput.handleBlur}
                 onKeyDown={amountInput.handleKeyDown}
                 className={cn(
-                  'w-full pl-8 pr-10 py-2 text-lg font-bold border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'w-full pl-8 pr-10 py-2.5 text-lg font-bold border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   amountInput.isExpression && 'border-primary/50 ring-1 ring-primary/20'
                 )}
               />
             </div>
             {amountInput.isExpression && amountInput.previewValue && (
-              <p className="mt-1 text-xs font-medium text-primary" role="status" aria-live="polite">
-                = {parseFloat(amountInput.previewValue).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+              <p className="mt-1 text-sm font-medium text-primary" role="status" aria-live="polite">
+                Total ৳{formatPreview(amountInput.previewValue)}
+              </p>
+            )}
+            {!amountInput.isExpression && !amountInput.displayValue && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Enter a number or expression (e.g. 20+40+50)
               </p>
             )}
           </div>
 
-          {/* FIELD 2: Category / Source (Required for Expense & Income) */}
+          {/* Category / Source */}
           {activeTab === 'expense' && (
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label htmlFor="tx-category" className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Expense Category *
+                <label htmlFor="tx-category" className="text-sm font-medium text-foreground">
+                  Category (optional)
                 </label>
                 {!showNewCategory && (
                   <button
                     type="button"
-                    onClick={() => setShowNewCategory(true)}
-                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                    onClick={() => {
+                      priorCategoryIdRef.current = categoryId
+                      setShowNewCategory(true)
+                      setTimeout(() => newCategoryInputRef.current?.focus(), 50)
+                    }}
+                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5 min-h-[24px]"
                   >
                     <Plus size={12} /> New
                   </button>
                 )}
               </div>
               {showNewCategory ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="New category name..."
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-input rounded-md text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateNewCategory}
-                    className="px-3 py-2 bg-primary text-white rounded-md text-xs font-medium"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewCategory(false)}
-                    className="px-2 py-2 text-muted-foreground text-xs"
-                  >
-                    Cancel
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      ref={newCategoryInputRef}
+                      type="text"
+                      placeholder="Category name"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleCreateNewCategory()
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-input rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateNewCategory}
+                      disabled={createCategoryMutation.isPending}
+                      className="px-3 py-2 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 min-h-[24px] min-w-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Add category
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelCategory}
+                      className="px-2 py-2 text-muted-foreground text-xs hover:text-foreground min-h-[24px] min-w-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Cancel category
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <select
@@ -432,7 +604,7 @@ export function QuickAddModal({
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full px-3 py-2 border border-input rounded-md text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <option value="">Select Category (Optional / Default)</option>
+                  <option value="">No category</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -446,42 +618,56 @@ export function QuickAddModal({
           {activeTab === 'income' && (
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label htmlFor="tx-source" className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Income Source *
+                <label htmlFor="tx-source" className="text-sm font-medium text-foreground">
+                  Income source (optional)
                 </label>
                 {!showNewSource && (
                   <button
                     type="button"
-                    onClick={() => setShowNewSource(true)}
-                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                    onClick={() => {
+                      priorSourceIdRef.current = incomeSourceId
+                      setShowNewSource(true)
+                      setTimeout(() => newSourceInputRef.current?.focus(), 50)
+                    }}
+                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5 min-h-[24px]"
                   >
                     <Plus size={12} /> New
                   </button>
                 )}
               </div>
               {showNewSource ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="New income source..."
-                    value={newSourceName}
-                    onChange={(e) => setNewSourceName(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-input rounded-md text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateNewSource}
-                    className="px-3 py-2 bg-primary text-white rounded-md text-xs font-medium"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewSource(false)}
-                    className="px-2 py-2 text-muted-foreground text-xs"
-                  >
-                    Cancel
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      ref={newSourceInputRef}
+                      type="text"
+                      placeholder="Source name"
+                      value={newSourceName}
+                      onChange={(e) => setNewSourceName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleCreateNewSource()
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-input rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateNewSource}
+                      disabled={createSourceMutation.isPending}
+                      className="px-3 py-2 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 min-h-[24px] min-w-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Add category
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelSource}
+                      className="px-2 py-2 text-muted-foreground text-xs hover:text-foreground min-h-[24px] min-w-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Cancel category
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <select
@@ -490,7 +676,7 @@ export function QuickAddModal({
                   onChange={(e) => setIncomeSourceId(e.target.value)}
                   className="w-full px-3 py-2 border border-input rounded-md text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <option value="">Select Income Source (Optional / Default)</option>
+                  <option value="">No source</option>
                   {sources.map((src) => (
                     <option key={src.id} value={src.id}>
                       {src.name}
@@ -501,12 +687,12 @@ export function QuickAddModal({
             </div>
           )}
 
-          {/* FIELD 3: Financial Account(s) (Required) */}
+          {/* Account(s) */}
           {activeTab === 'transfer' ? (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="tx-source-account" className="block text-xs font-semibold text-foreground uppercase tracking-wide mb-1">
-                  From Account *
+                <label htmlFor="tx-source-account" className="block text-sm font-medium text-foreground mb-1">
+                  From account
                 </label>
                 <select
                   id="tx-source-account"
@@ -517,14 +703,14 @@ export function QuickAddModal({
                 >
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.name} (৳{acc.current_balance})
+                      {acc.name} (৳{formatBalance(acc.current_balance)})
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="tx-dest-account" className="block text-xs font-semibold text-foreground uppercase tracking-wide mb-1">
-                  To Account *
+                <label htmlFor="tx-dest-account" className="block text-sm font-medium text-foreground mb-1">
+                  To account
                 </label>
                 <select
                   id="tx-dest-account"
@@ -535,7 +721,7 @@ export function QuickAddModal({
                 >
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id} disabled={acc.id.toString() === accountId}>
-                      {acc.name} (৳{acc.current_balance})
+                      {acc.name} (৳{formatBalance(acc.current_balance)})
                     </option>
                   ))}
                 </select>
@@ -544,16 +730,20 @@ export function QuickAddModal({
           ) : (
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label htmlFor="tx-account" className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Account *
+                <label htmlFor="tx-account" className="text-sm font-medium text-foreground">
+                  {activeTab === 'expense' ? 'Paid from' : 'Received into'}
                 </label>
                 {!showNewAccount && (
                   <button
                     type="button"
-                    onClick={() => setShowNewAccount(true)}
-                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                    onClick={() => {
+                      priorAccountIdRef.current = accountId
+                      setShowNewAccount(true)
+                      setTimeout(() => newAccountNameInputRef.current?.focus(), 50)
+                    }}
+                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5 min-h-[24px]"
                   >
-                    <Plus size={12} /> New Account
+                    <Plus size={12} /> New
                   </button>
                 )}
               </div>
@@ -566,49 +756,49 @@ export function QuickAddModal({
               >
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} — Balance: ৳{acc.current_balance}
+                    {acc.name} — ৳{formatBalance(acc.current_balance)}
                   </option>
                 ))}
               </select>
             </div>
           )}
 
-          {/* Optional Fields: Date & Description */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div>
-              <label htmlFor="tx-date" className="block text-xs font-medium text-secondary mb-1">
-                Date (Defaults Today)
+          {/* Date & Note — stacked on narrow screens */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 @sm:grid-cols-2" style={{ minWidth: 0 }}>
+            <div className="min-w-0">
+              <label htmlFor="tx-date" className="block text-sm font-medium text-foreground mb-1">
+                Transaction date
               </label>
               <input
                 id="tx-date"
                 type="date"
                 value={transactionDate}
                 onChange={(e) => setTransactionDate(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md text-xs bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full px-3 py-2 border border-input rounded-md text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-            <div>
-              <label htmlFor="tx-desc" className="block text-xs font-medium text-secondary mb-1">
-                Description (Optional)
+            <div className="min-w-0">
+              <label htmlFor="tx-desc" className="block text-sm font-medium text-foreground mb-1">
+                Note (optional)
               </label>
               <input
                 id="tx-desc"
                 type="text"
-                placeholder="Note, grocery item, receipt..."
+                placeholder="What was this for?"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full px-3 py-2 border border-input rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
 
-          {/* Submit Action */}
+          {/* Submit */}
           <div className="pt-3 border-t border-border flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-secondary hover:text-foreground rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md min-h-[24px] min-w-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Cancel
             </button>
@@ -616,13 +806,13 @@ export function QuickAddModal({
               type="submit"
               disabled={isPending || accounts.length === 0}
               className={cn(
-                'px-5 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed',
+                'px-5 py-2.5 text-sm font-medium text-white rounded-md shadow-sm transition-all min-h-[24px] min-w-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed',
                 activeTab === 'expense' && 'bg-danger hover:bg-danger/90',
                 activeTab === 'income' && 'bg-success hover:bg-success/90',
                 activeTab === 'transfer' && 'bg-primary hover:bg-primary/90'
               )}
             >
-              {isPending ? 'Saving...' : activeTab === 'transfer' ? 'Transfer Funds' : `Add ${activeTab === 'expense' ? 'Expense' : 'Income'}`}
+              {isPending ? 'Saving...' : tabConfig.submitLabel}
             </button>
           </div>
         </form>
