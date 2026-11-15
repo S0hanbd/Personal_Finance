@@ -50,6 +50,7 @@ def lend_money(
         description=f"Lent to {person.name}: {notes}",
     )
 
+    person = Person.objects.select_for_update().get(id=person.id)
     person.total_lent += amount
     person.save(update_fields=['total_lent', 'updated_at'])
 
@@ -108,6 +109,7 @@ def borrow_money(
         description=f"Borrowed from {person.name}: {notes}",
     )
 
+    person = Person.objects.select_for_update().get(id=person.id)
     person.total_borrowed += amount
     person.save(update_fields=['total_borrowed', 'updated_at'])
 
@@ -168,7 +170,7 @@ def record_settlement(
     else:
         person_field = 'total_borrowed'
 
-    person = loan.person
+    person = Person.objects.select_for_update().get(id=loan.person.id)
     setattr(person, person_field, max(
         Decimal('0.00'),
         getattr(person, person_field) - amount,

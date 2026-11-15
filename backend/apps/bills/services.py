@@ -18,6 +18,7 @@ def calculate_due_date(year: int, month: int, due_day: int) -> date:
     return date(year, month, clamped_day)
 
 
+@transaction.atomic
 def generate_monthly_occurrences(user, period: str | None = None) -> list[RecurringExpenseOccurrence]:
     """
     Ensures that for a given user and target month (YYYY-MM), all active recurring bills

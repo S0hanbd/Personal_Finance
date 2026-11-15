@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.db import transaction
 from rest_framework import serializers
 from apps.transactions.models import ExpenseCategory
 from .models import MonthlyBudget, BudgetCategory, PlannedPurchase
@@ -41,6 +42,7 @@ class MonthlyBudgetSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Month must be between 1 and 12.")
         return value
 
+    @transaction.atomic
     def create(self, validated_data):
         allocations_data = validated_data.pop('allocations', [])
         user = self.context['request'].user
@@ -71,6 +73,7 @@ class MonthlyBudgetSerializer(serializers.ModelSerializer):
 
         return budget
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         allocations_data = validated_data.pop('allocations', None)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
