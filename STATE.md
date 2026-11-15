@@ -46,6 +46,7 @@
 | **Phase 7** | Independent Project Finance Workspace | **COMPLETED & VERIFIED** |
 | **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | **COMPLETED & VERIFIED** |
 | **Phase 9** | Export & Reporting | **COMPLETED & VERIFIED** |
+| **Phase 10** | Transaction Editing, Profile Management & Dashboard Settings | **IN PROGRESS** (Step 1–2 done, Step 3 pending) |
 
 ---
 
@@ -97,9 +98,11 @@ frontend/src/
 
   components/
     layout/                   — AppLayout, Header, Sidebar
-    shared/                   — EmptyState, ErrorState, SummaryCard, KeyboardShortcutsHelp
+    shared/                   — EmptyState, ErrorState, SummaryCard, KeyboardShortcutsHelp, ExportButton
     transactions/             — QuickAddModal (hooks wrapper + content pattern)
     analytics/                — PeriodSelector, 6 Recharts chart components
+    reports/                  — ReportOptionsModal
+    settings/                 — ProfileSettings, PasswordSettings, DashboardSettings, NavigationSettings
 
   hooks/                      — React Query hooks (1 per domain)
     useAuth.ts                — Auth mutations + protected query wrapper
@@ -111,13 +114,14 @@ frontend/src/
     useLendingQueries.ts      — Person + loan queries
     useAnalyticsQueries.ts    — Analytics chart data queries
     useProjectsQueries.ts     — Project and project item queries
+    useSettingsQueries.ts     — Profile, password, user settings queries
     useCalculatorInput.ts     — Calculator input logic (shared)
     useKeyboardShortcuts.ts   — Global keyboard shortcuts
 
   types/                      — TypeScript interfaces (money as string)
     accounts.ts, auth.ts, bills.ts, budgets.ts,
     lending.ts, obligations.ts, transactions.ts,
-    analytics.ts, projects.ts, index.ts
+    analytics.ts, projects.ts, reports.ts, settings.ts, index.ts
 
   lib/
     api.ts                    — Axios instance + interceptors
@@ -127,12 +131,13 @@ frontend/src/
 
   store/
     authStore.ts              — Zustand auth store (token, user, refreshAccessToken)
+    settingsStore.ts          — Zustand settings store (dashboard cards, sidebar items)
 ```
 
 ### API Endpoints Summary
 | Domain | Endpoints |
 |--------|-----------|
-| Auth | `POST /api/auth/register/`, `POST /api/auth/login/`, `POST /api/auth/logout/`, `GET /api/auth/me/` |
+| Auth | `POST /api/auth/register/`, `POST /api/auth/login/`, `POST /api/auth/logout/`, `GET /api/auth/me/`, `GET/PATCH /api/auth/profile/`, `POST /api/auth/change_password/`, `GET/PATCH /api/auth/settings/` |
 | Accounts | `GET/POST /api/accounts/`, `GET/PUT/PATCH/DELETE /api/accounts/{id}/` |
 | Transactions | `GET/POST /api/transactions/`, `GET/PUT/PATCH/DELETE /api/transactions/{id}/` |
 | Bills | `GET/POST /api/bills/`, `GET/PUT/DELETE /api/bills/{id}/`, `POST /api/bills/{id}/pay/` |
@@ -266,4 +271,24 @@ frontend/src/
 2. **Frontend:** `types/reports.ts`, `hooks/useReportsQueries.ts` (blob download functions), reusable `ExportButton` component with dropdown. Integrated into TransactionsPage (CSV), AnalyticsPage (monthly PDF), BudgetPage (budget PDF), ProjectsPage (project PDF).
 3. **Dependencies:** Added `reportlab==4.2.2` to requirements.txt.
 
-### Next: Phase 10 — (To be determined)
+### Phase 10 — Transaction Editing, Profile Management & Dashboard Settings (In Progress):
+
+**Step 1 (Completed) — Backend:**
+1. **Transaction 24-hour edit window:** `_check_24_hour_window()` added to `update_transaction()` and `delete_transaction()` in `transactions/services.py`. Rejects edits/deletes older than 24 hours with ValidationError.
+2. **Profile model extension:** Added `first_name`, `last_name`, `phone`, `bio`, `profile_picture` (ImageField) to User model. Created `UserSettings` model with `dashboard_cards` and `sidebar_items` JSONFields.
+3. **API endpoints:** `GET/PATCH /api/auth/profile/`, `POST /api/auth/change_password/`, `GET/PATCH /api/auth/settings/`. Serializers: ProfileSerializer, PasswordChangeSerializer, UserSettingsSerializer.
+4. **Dependencies:** Added `Pillow>=10.0.0` to requirements.txt. Migration created.
+
+**Step 2 (Completed) — Frontend Settings Infrastructure:**
+1. **Types:** `src/types/settings.ts` — UserProfile, PasswordChange, UserSettings, DashboardCard, SidebarItem interfaces + DASHBOARD_CARDS and SIDEBAR_ITEMS constants.
+2. **Hooks:** `src/hooks/useSettingsQueries.ts` — useUserProfile, useUpdateProfile (FormData support), useChangePassword, useUserSettings, useUpdateSettings.
+3. **Store:** `src/store/settingsStore.ts` — Zustand store caching dashboardCards and sidebarItems with loadSettings, updateDashboardCards, updateSidebarItems actions.
+4. **Components:** `src/components/settings/` — ProfileSettings (avatar upload, name, phone, bio), PasswordSettings (current/new/confirm), DashboardSettings (toggle switches for 7 cards), NavigationSettings (toggle + up/down reorder for 11 nav items).
+5. **Page:** `src/pages/SettingsPage.tsx` — Full rewrite with tab navigation (Profile, Password, Dashboard, Navigation). Loads settings into store on mount.
+6. **Verification:** `npx tsc --noEmit` ✓, `npx eslint` ✓
+
+**Step 3 (Pending — for other agent) — Frontend Integration:**
+1. `src/hooks/useTransactions.ts` — Add `useUpdateTransaction()` mutation.
+2. `src/pages/TransactionsPage.tsx` — Add edit button and edit modal (24-hour window check).
+3. `src/components/layout/Sidebar.tsx` — Read from settingsStore to filter/order nav items.
+4. `src/pages/DashboardPage.tsx` — Read from settingsStore to conditionally render SummaryCards.

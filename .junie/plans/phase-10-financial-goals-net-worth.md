@@ -213,5 +213,5 @@ graph LR
 # Delivery Plan
 
 ### ✓ Step 1: Backend - Transaction 24-hour edit window, Profile model, UserSettings, and API endpoints
-### * Step 2: Frontend - Settings types, hooks, Zustand store, and SettingsPage with all tabs
+### ✓ Step 2: Frontend - Settings types, hooks, Zustand store, and SettingsPage with all tabs
 ###   Step 3: Frontend - Transaction edit modal, Dashboard conditional rendering, and Sidebar customization
