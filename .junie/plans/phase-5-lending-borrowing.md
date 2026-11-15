@@ -2,166 +2,149 @@
 sessionId: session-261115-010452-1sxm
 ---
 
-# Requirements
+# Phase 9b — Report Customization
 
 ### Overview
-Build **Phase 7 — Independent Project Finance Workspace**: separate project planning and expense tracking that syncs with the main ledger. Each project has a planning table with budgeted items, and actual transactions tagged to those items with per-item progress bars showing spent vs budgeted.
+Enhance **Phase 9 — Export & Reporting** with full customization: users select which sections, columns, filters, and charts to include in their PDF/CSV exports.
 
 ### Scope
 
 **In Scope:**
-- **Project CRUD** — Create, edit, archive projects with name, description, status.
-- **Project Items (Planning Table)** — Each project has a table of items (e.g., "Cement", "Labor"). Each item has a name, estimated amount, and is editable. The system auto-calculates total estimated cost.
-- **Transaction Tagging** — Existing transactions gain an optional `project_item` FK. When recording a transaction, users can assign it to a project item.
-- **Per-Item Budget Tracking** — Each item shows a progress bar: actual spent (sum of tagged transactions) vs estimated budget. Over-spend highlighted in red.
-- **Project Summary** — Total estimated, total spent, remaining, overall progress.
-- **Transaction Sync** — Tagged transactions appear in both the main transaction list and the project view.
+- **Section Selection** — Checkboxes to include/exclude: Summary, Category Breakdown, Transaction Details, Charts/Projections
+- **Column Selection** — Choose which columns appear in transaction tables (Date, Type, Amount, Account, Category, Income Source, Project Item, Description)
+- **Filter Controls** — Apply date range, transaction type, account, and category filters before export
+- **Chart Options** — Toggle chart inclusion in PDF reports
+- **Settings Persistence** — Remember last used export settings per report type in localStorage
 
 **Out of Scope:**
-- Multi-user collaboration on projects.
-- Project templates.
-- File attachments to projects.
-- Interest/loans within projects.
+- Custom report templates
+- Scheduled exports
+- Multi-currency reports
 
 ### User Stories
-1. As a user, I want to create a project so I can plan and track expenses for a specific endeavor.
-2. As a user, I want to add planning items with estimated costs so I know the total project budget.
-3. As a user, I want to edit item names and estimates so my plan stays accurate.
-4. As a user, I want to tag transactions to project items so actual spending is tracked against the plan.
-5. As a user, I want to see a progress bar per item so I know if I'm over or under budget.
-6. As a user, I want to see total estimated vs total spent at the project level.
-7. As a user, I want tagged transactions to appear in my main transaction list too.
+1. As a user, I want to choose which sections appear in my PDF so I can create focused reports.
+2. As a user, I want to select which columns appear in transaction tables so I control the detail level.
+3. As a user, I want to apply filters before exporting so I get only relevant data.
+4. As a user, I want to include or exclude charts so I can choose between visual or text-only reports.
+5. As a user, I want my export preferences remembered so I don't reconfigure every time.
 
 ### Functional Requirements
-- **Project Items Table**: Editable rows with name and estimated amount. Auto-sum total at bottom. Add/Delete rows.
-- **Progress Bar**: Per item — green (under 80%), amber (80-100%), red (>100%). Shows spent amount and remaining.
-- **Transaction Assignment**: When creating/editing a transaction, optional "Project Item" dropdown. If selected, the transaction counts toward that item's spent amount.
-- **Project Summary Cards**: Total Estimated, Total Spent, Remaining, % Complete.
-- **Status**: Active, On Hold, Completed, Archived. Filter by status.
-- **Empty State**: "No projects yet" with CTA to create one.
+- **Section Checkboxes**: Summary, Category Breakdown, Transaction Details, Charts/Projections
+- **Column Selectors**: Date, Type, Amount, Account, Category, Income Source, Project Item, Description
+- **Filter Controls**: Date range picker, transaction type dropdown, account/category selectors
+- **Chart Toggles**: Include/exclude specific chart types
+- **Settings Persistence**: Store last used options in localStorage per report type
+- **Default Behavior**: If no options provided, include all sections and columns (backward compatible)
 
 ### Non-Functional Requirements
-- Money values as Decimal throughout — no floating-point.
-- Tagging a transaction to a project item must not affect account balance — it's a metadata tag only.
-- Frontend: `npm run typecheck` and `npm run lint` pass.
-- Backend: `python manage.py check`, `ruff check .`, `pytest` pass.
+- Backend: `python manage.py check`, `ruff check .`, `pytest` pass
+- Frontend: `npm run typecheck` and `npm run lint` pass
+- PDF generation within 5 seconds for customized reports
+- No breaking changes to existing API endpoints
 
 # Technical Design
 
 ### Current Implementation
-- **Projects app** (`backend/apps/projects/`): Placeholder. `models.py` is empty, `views.py` returns `[]`.
-- **Transaction model**: No `project` or `project_item` field. Transactions are standalone.
-- **Frontend**: `ProjectsPage.tsx` is a placeholder. No project types or hooks exist.
-- **QuickAddModal**: No project item selector. Transactions are created without project context.
+- **Reports services** (`apps/reports/services.py`): 4 functions with fixed sections/columns. `export_transactions_csv` outputs all 8 columns. PDF functions always include summary + category breakdown + (for project) transaction list.
+- **Reports views** (`apps/reports/views.py`): ReportsViewSet with 4 GET endpoints, no customization options.
+- **Frontend types** (`src/types/reports.ts`): Basic `ExportFilters` and `ReportParams`, no options structure.
+- **Frontend hooks** (`src/hooks/useReportsQueries.ts`): 4 download functions, no options parameter.
+- **ExportButton** (`src/components/shared/ExportButton.tsx`): Simple CSV/PDF dropdown, no customization UI.
 
 ### Key Decisions
-- **`project_item` as nullable FK on Transaction** — Adding `project_item` to the Transaction model (nullable FK to `ProjectItem`) is the simplest approach. It's a metadata tag — doesn't affect balance calculations. Existing transactions remain untagged.
-- **ProjectItem owns the estimate** — `ProjectItem.estimated_amount` is the budget. Actual is computed by summing linked transactions. No cached field needed — compute on read.
-- **Project total is sum of items** — `Project.total_estimated` is computed as SUM(ProjectItem.estimated_amount). Not stored — computed on read to avoid sync issues.
-- **Follow existing app pattern** — Models → Serializers → ViewSets → URLs → Tests (backend), Types → Hooks → Page (frontend).
+- **Options dict in API** — Pass JSON body with `sections`, `columns`, `filters`, `include_charts` to backend via POST for PDF, query params for CSV.
+- **Conditional rendering** — Backend checks options dict to include/exclude sections. If a section is not in the list, skip it entirely.
+- **Column mapping** — Backend maps column names to transaction fields. Only selected columns appear in CSV/PDF tables.
+- **Settings persistence** — Frontend stores options in localStorage per report type (monthly, budget, project, transactions).
+- **Modal-based UI** — `ReportOptionsModal` appears before PDF generation for customization. CSV export uses inline options.
+- **Backward compatibility** — If no options provided, default to including all sections and columns.
 
 ### Proposed Changes
 
-**Backend (`apps/projects/`):**
-1. **Models** (`models.py`): `Project` (user, name, description, status, start_date, end_date), `ProjectItem` (project, name, estimated_amount, notes, ordering).
-2. **Transaction model change** (`apps/transactions/models.py`): Add `project_item` nullable FK to `ProjectItem` with `SET_NULL` on delete.
-3. **Serializers** (`serializers.py`): `ProjectSerializer`, `ProjectItemSerializer`, `ProjectDetailSerializer` (nested items with actual_spent computed).
-4. **ViewSets** (`views.py`): `ProjectViewSet` (CRUD), `ProjectItemViewSet` (CRUD within project).
-5. **URLs** (`urls.py`): Wire via DefaultRouter to `/api/projects/`.
-6. **Tests** (`tests.py`): Project CRUD, item CRUD, actual_spent computation, transaction tagging.
+**Backend (`apps/reports/`):**
+1. **Services** (`services.py`): Update all functions to accept `options` dict:
+   - `sections`: list of sections to include (default: all)
+   - `columns`: list of columns for transaction tables (default: all)
+   - `filters`: date range, transaction type, account, category
+   - `include_charts`: boolean for chart images in PDF
+2. **Views** (`views.py`): Add POST variants for PDF endpoints that accept `options` JSON body. Keep GET endpoints for backward compatibility.
+3. **Tests** (`tests.py`): Test customized reports with different section/column combinations.
 
 **Frontend:**
-1. **Types** (`src/types/projects.ts`): `Project`, `ProjectItem`, `ProjectSummary`.
-2. **Types index** (`src/types/index.ts`): Export project types.
-3. **Transaction type update** (`src/types/transactions.ts`): Add `project_item?: number` and `project_item_name?: string`.
-4. **Hooks** (`src/hooks/useProjectsQueries.ts`): `useProjects()`, `useProject()`, `useCreateProject()`, `useUpdateProject()`, `useProjectItems()`, `useCreateProjectItem()`, `useUpdateProjectItem()`, `useDeleteProjectItem()`.
-5. **Page** (`src/pages/ProjectsPage.tsx`): Project list with summary cards, project detail view with items table (editable), per-item progress bars, total estimated vs spent.
-6. **QuickAddModal update** (`src/components/transactions/QuickAddModal.tsx`): Add optional "Project Item" dropdown that fetches items from active projects.
+1. **Types** (`src/types/reports.ts`): `ReportOptions` interface with all customization fields.
+2. **Components** (`src/components/reports/ReportOptionsModal.tsx`): Modal with checkboxes for sections, column selectors, filters, and chart toggles.
+3. **Hooks** (`src/hooks/useReportsQueries.ts`): Update hooks to accept and pass report options.
+4. **ExportButton** (`src/components/shared/ExportButton.tsx`): Add "Customize" option that opens ReportOptionsModal before generating PDF.
+5. **Settings Storage**: localStorage persistence for last used options.
 
 ### File Structure
 ```
-backend/apps/projects/
-  models.py          (new — Project, ProjectItem)
-  serializers.py     (rewrite — 3 serializers)
-  views.py           (rewrite — ViewSets)
-  urls.py            (rewrite — router wiring)
-  tests.py           (rewrite — pytest tests)
-
-backend/apps/transactions/
-  models.py          (modified — add project_item FK)
-  serializers.py     (modified — add project_item fields)
+backend/apps/reports/
+  services.py        (modified — accept options dict)
+  views.py           (modified — POST with options body)
+  tests.py           (modified — test customization)
 
 frontend/src/
-  types/projects.ts  (new)
-  types/transactions.ts  (modified — add project_item)
-  types/index.ts     (modified — add projects export)
-  hooks/useProjectsQueries.ts  (new)
-  pages/ProjectsPage.tsx       (rewrite — full page)
-  components/transactions/QuickAddModal.tsx  (modified — add project item selector)
+  types/reports.ts        (modified — add ReportOptions)
+  components/reports/
+    ReportOptionsModal.tsx  (new — customization UI)
+  hooks/useReportsQueries.ts  (modified — pass options)
+  components/shared/ExportButton.tsx  (modified — add customize option)
 ```
 
 ### Architecture Diagram
 ```mermaid
 graph LR
-  U[User] --> P[ProjectsPage.tsx]
-  P --> H[useProjectsQueries]
-  H --> A[API /api/projects/]
-  A --> V[ProjectViewSet / ProjectItemViewSet]
-  V --> DB[(Database)]
-  Q[QuickAddModal] --> H
-  Q --> T[API /api/transactions/]
-  T --> S[create_transaction]
-  S --> DB
-  DB --> M[Project / ProjectItem / Transaction]
+  U[User] --> EB[ExportButton]
+  EB --> ROM[ReportOptionsModal]
+  ROM -->|sections, columns, filters| H[useReportsQueries]
+  H -->|POST with options| A[API /api/reports/]
+  A --> V[ReportsViewSet]
+  V --> S[reports/services.py]
+  S -->|check options| DB[(Database)]
+  S -->|conditional sections| PDF[PDF Generator]
+  PDF --> U
 ```
 
 ### Risks
-- **Migration for Transaction model** — Adding `project_item` FK requires a migration on an existing table. The field must be nullable with a default of NULL to avoid data loss.
-- **Circular import** — `Transaction` references `ProjectItem` which references `Project`. Use string FK (`'projects.ProjectItem'`) to avoid circular imports.
-- **QuickAddModal complexity** — Adding a project item selector means fetching projects and items. Use a lazy fetch (only when needed) to avoid slowing down the modal.
+- **Options validation** — Backend must validate sections/columns lists to prevent invalid values.
+- **Chart rendering** — Conditional chart inclusion requires careful PDF layout management. If charts are excluded, skip that section entirely.
+- **Settings persistence** — localStorage may be cleared; provide sensible defaults.
 
 # Testing
 
 ### Validation Approach
-Follow the existing `apps/bills/tests.py` pattern: pytest with `@pytest.mark.django_db`, using fixtures from `backend/conftest.py`.
+Test each customization option independently and in combination.
 
 ### Key Scenarios
-1. **Create project** — POST returns 201, project is visible in list.
-2. **Create project item** — Item belongs to project, estimated_amount is stored as Decimal.
-3. **Project total estimated** — Sum of all item estimated_amounts matches.
-4. **Tag transaction to item** — Transaction.project_item is set, actual_spent for that item includes the transaction amount.
-5. **Actual spent computation** — Multiple transactions tagged to same item sum correctly.
-6. **Over-spend detection** — When actual > estimated, API returns the variance correctly.
-7. **Delete item cascades** — Deleting a project item sets transaction.project_item to NULL (SET_NULL).
-8. **API integration** — GET endpoints return 200 with correct structure.
+1. **Section selection** — Generate PDF with only summary section, verify other sections excluded.
+2. **Column selection** — Generate CSV with only date/amount columns, verify other columns excluded.
+3. **Filter application** — Export with date range filter, verify only matching transactions included.
+4. **Chart toggle** — Generate PDF with charts disabled, verify no chart images.
+5. **Combined options** — Test multiple customization options together.
+6. **Default behavior** — Verify default options produce full report (backward compatible).
+7. **Invalid options** — Test with invalid section/column names, verify graceful handling.
+8. **Frontend** — `npm run typecheck` and `npm run lint` pass.
 
 ### Edge Cases
-- Transaction tagged to item in archived project — allowed, but item still counts.
-- Empty project (no items) — total estimated is 0, empty state shown.
-- Item with no transactions — actual_spent is 0, progress bar at 0%.
-- Frontend: `npm run typecheck` and `npm run lint` pass.
-- QuickAddModal: Project item selector doesn't break if no projects exist.
+- Empty sections list — use defaults (all sections).
+- No columns selected — use default columns.
+- Filters return no data — show "No data" message in PDF/CSV.
+- Settings persistence fails — use sensible defaults.
 
 # Delivery Steps
 
-### ✓ Step 1: Backend models, migrations, serializers, ViewSets, URLs, and tests
-Implement the projects backend: models, API layer, and transaction tagging, then validate with tests.
-- `apps/projects/models.py`: Create `Project` (user, name, description, status, start_date, end_date) and `ProjectItem` (project, name, estimated_amount, notes, order).
-- `apps/transactions/models.py`: Add `project_item` nullable FK (`'projects.ProjectItem'`, `SET_NULL`) to `Transaction`.
-- Run `python manage.py makemigrations apps.projects apps.transactions` then `python manage.py migrate`.
-- `apps/projects/serializers.py`: `ProjectSerializer`, `ProjectItemSerializer`, `ProjectDetailSerializer` (nested items with `actual_spent` computed from linked transactions).
-- `apps/projects/views.py`: `ProjectViewSet` (CRUD, filtered by user), `ProjectItemViewSet` (CRUD within project, returns `actual_spent`).
-- `apps/projects/urls.py`: Wire ViewSets via DefaultRouter to `/api/projects/`.
-- `apps/transactions/serializers.py`: Add `project_item` and `project_item_name` (read-only) to `TransactionSerializer`.
-- `apps/projects/tests.py`: 8+ tests — project CRUD, item CRUD, total estimated computation, actual_spent from tagged transactions, over-spend detection, SET_NULL on item delete, API endpoints.
+### ? Step 1: Backend report customization options
+Update backend services and views to accept and process customization options.
+- `apps/reports/services.py`: Add `options` parameter to all 4 functions. Implement conditional section rendering based on `sections` list. Implement column filtering for CSV and transaction tables. Add `_validate_options()` helper for input validation.
+- `apps/reports/views.py`: Add POST variants for `monthly_report`, `budget_report`, `project_report` that accept `options` JSON body. Update `export_csv` to accept `columns` and `sections` query params.
+- `apps/reports/tests.py`: Add 6+ tests — section filtering, column filtering, combined options, invalid options handling, default behavior, API POST endpoints.
 - Run `python manage.py check`, `ruff check .`, and `pytest` to verify.
 
-### ✓ Step 2: Frontend types, hooks, ProjectsPage, and QuickAddModal update
-Build the frontend projects module: types, React Query hooks, full ProjectsPage, and transaction tagging in QuickAddModal.
-- `src/types/projects.ts`: `Project`, `ProjectItem`, `ProjectSummary` interfaces. Money fields as `string`.
-- `src/types/index.ts`: Add `export * from './projects'`.
-- `src/types/transactions.ts`: Add `project_item?: number` and `project_item_name?: string` to `Transaction` and `CreateTransactionRequest`.
-- `src/hooks/useProjectsQueries.ts`: `useProjects()`, `useProject()`, `useCreateProject()`, `useUpdateProject()`, `useProjectItems()`, `useCreateProjectItem()`, `useUpdateProjectItem()`, `useDeleteProjectItem()`. Follow `useBillsQueries.ts` pattern.
-- `src/pages/ProjectsPage.tsx`: Project list with summary cards (Total Estimated, Total Spent, Remaining), project detail view with editable items table, per-item progress bars (green/amber/red), total row. Hooks wrapper + content component pattern. Follow `BillsPage.tsx` UI pattern.
-- `src/components/transactions/QuickAddModal.tsx`: Add optional "Project Item" dropdown (visible for expense type). Fetches items from active projects. Sends `project_item` in the transaction create payload.
+### ? Step 2: Frontend report customization UI
+Build the frontend customization modal and integrate with existing export flow.
+- `src/types/reports.ts`: Add `ReportOptions` interface with `sections`, `columns`, `filters`, and `include_charts` fields. Define `ReportSection` and `ReportColumn` enums.
+- `src/components/reports/ReportOptionsModal.tsx` (new): Modal with checkboxes for sections, column selectors, date range filter, and chart toggle. Uses hooks wrapper + content component pattern. Persist options to localStorage.
+- `src/hooks/useReportsQueries.ts`: Update hooks to accept `ReportOptions` and pass to backend via POST for PDF, query params for CSV.
+- `src/components/shared/ExportButton.tsx`: Add "Customize" option that opens ReportOptionsModal. Load saved options from localStorage.
 - Run `npm run typecheck` and `npm run lint` to verify.

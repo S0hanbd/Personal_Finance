@@ -4,6 +4,7 @@ import type {
   MonthlyReportParams,
   BudgetReportParams,
   ProjectReportParams,
+  ReportOptions,
 } from '@/types'
 
 /** Download a blob response as a file */
@@ -19,7 +20,19 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 /** Export transactions to CSV and trigger download */
-export async function exportTransactionsCSV(filters: ExportFilters = {}) {
+export async function exportTransactionsCSV(
+  filters: ExportFilters = {},
+  options?: ReportOptions,
+) {
+  if (options) {
+    const res = await api.post(
+      '/reports/export_csv/',
+      { options },
+      { responseType: 'blob' },
+    )
+    downloadBlob(res.data, 'transactions.csv')
+    return res.data
+  }
   const res = await api.get('/reports/export_csv/', {
     params: filters,
     responseType: 'blob',
@@ -30,6 +43,15 @@ export async function exportTransactionsCSV(filters: ExportFilters = {}) {
 
 /** Generate monthly financial report PDF and trigger download */
 export async function downloadMonthlyReport(params: MonthlyReportParams) {
+  if (params.options) {
+    const res = await api.post(
+      '/reports/monthly_report/',
+      { year: params.year, month: params.month, options: params.options },
+      { responseType: 'blob' },
+    )
+    downloadBlob(res.data, `monthly_report_${params.year}_${String(params.month).padStart(2, '0')}.pdf`)
+    return res.data
+  }
   const res = await api.get('/reports/monthly_report/', {
     params: { year: params.year, month: params.month },
     responseType: 'blob',
@@ -40,6 +62,15 @@ export async function downloadMonthlyReport(params: MonthlyReportParams) {
 
 /** Generate budget performance report PDF and trigger download */
 export async function downloadBudgetReport(params: BudgetReportParams) {
+  if (params.options) {
+    const res = await api.post(
+      '/reports/budget_report/',
+      { year: params.year, month: params.month, options: params.options },
+      { responseType: 'blob' },
+    )
+    downloadBlob(res.data, `budget_report_${params.year}_${String(params.month).padStart(2, '0')}.pdf`)
+    return res.data
+  }
   const res = await api.get('/reports/budget_report/', {
     params: { year: params.year, month: params.month },
     responseType: 'blob',
@@ -50,6 +81,15 @@ export async function downloadBudgetReport(params: BudgetReportParams) {
 
 /** Generate project finance report PDF and trigger download */
 export async function downloadProjectReport(params: ProjectReportParams) {
+  if (params.options) {
+    const res = await api.post(
+      '/reports/project_report/',
+      { project_id: params.project_id, options: params.options },
+      { responseType: 'blob' },
+    )
+    downloadBlob(res.data, `project_report_${params.project_id}.pdf`)
+    return res.data
+  }
   const res = await api.get('/reports/project_report/', {
     params: { project_id: params.project_id },
     responseType: 'blob',

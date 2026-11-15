@@ -1,6 +1,8 @@
 from decimal import Decimal
+from datetime import timedelta
 from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from apps.accounts.models import FinancialAccount
 from .models import Transaction, AccountTransfer
 
@@ -51,9 +53,16 @@ def create_transaction(*, user, account: FinancialAccount, transaction_type: str
     return tx
 
 
+def _check_24_hour_window(tx: Transaction) -> None:
+    """Raise ValidationError if the transaction is older than 24 hours."""
+    if timezone.now() - tx.created_at > timedelta(hours=24):
+        raise ValidationError('This transaction can no longer be edited (24-hour window has passed).')
+
+
 @transaction.atomic
 def update_transaction(tx: Transaction, **validated_data) -> Transaction:
     """Update a transaction, reversing old balance impact and applying new one."""
+    _check_24_hour_window(tx)
     new_amount = validated_data.get('amount', tx.amount)
     new_type = validated_data.get('transaction_type', tx.transaction_type)
     new_account = validated_data.get('account', tx.account)
@@ -89,6 +98,7 @@ def update_transaction(tx: Transaction, **validated_data) -> Transaction:
 @transaction.atomic
 def delete_transaction(tx: Transaction) -> None:
     """Delete a transaction and atomically revert its effect on account balance."""
+    _check_24_hour_window(tx)
     acc = FinancialAccount.objects.select_for_update().get(id=tx.account.id)
     delta = get_balance_delta(tx.transaction_type, tx.amount)
     acc.current_balance -= delta
