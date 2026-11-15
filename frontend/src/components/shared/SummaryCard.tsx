@@ -15,6 +15,12 @@ const borderMap = {
   danger: 'border-l-danger',
 }
 
+const variantLabels: Record<string, string> = {
+  success: 'On Track',
+  warning: 'Near Limit',
+  danger: 'Over Budget',
+}
+
 export function SummaryCard({
   title,
   value,
@@ -33,8 +39,24 @@ export function SummaryCard({
   }
 
   return (
-    <div className={cn('bg-white rounded-lg p-5 shadow-sm border border-border border-l-4', borderMap[variant])}>
-      <p className="text-sm font-medium text-secondary mb-1">{title}</p>
+    <div
+      className={cn('bg-white rounded-lg p-5 shadow-sm border border-border border-l-4', borderMap[variant])}
+      role="status"
+      aria-label={`${title}: ${value}${variantLabels[variant] ? ', ' + variantLabels[variant] : ''}`}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-secondary mb-1">{title}</p>
+        {variantLabels[variant] && (
+          <span className={cn(
+            'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+            variant === 'success' && 'bg-emerald-50 text-emerald-700',
+            variant === 'warning' && 'bg-amber-50 text-amber-700',
+            variant === 'danger' && 'bg-rose-50 text-rose-700',
+          )}>
+            {variantLabels[variant]}
+          </span>
+        )}
+      </div>
       <p className="text-2xl font-bold text-foreground">{value}</p>
       {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
     </div>

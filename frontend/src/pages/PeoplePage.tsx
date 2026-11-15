@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import {
   Users,
   ArrowUpCircle,
@@ -292,7 +293,10 @@ function PeoplePageContent(props: ContentProps) {
           mode="lend"
           onClose={() => setShowLendModal(false)}
           accounts={accounts}
-          onSubmit={lendMutation.mutate}
+          onSubmit={(data) => {
+            lendMutation.mutate(data)
+            toast.success('Money lent successfully')
+          }}
           isPending={lendMutation.isPending}
           error={lendMutation.error}
         />
@@ -302,7 +306,10 @@ function PeoplePageContent(props: ContentProps) {
           mode="borrow"
           onClose={() => setShowBorrowModal(false)}
           accounts={accounts}
-          onSubmit={borrowMutation.mutate}
+          onSubmit={(data) => {
+            borrowMutation.mutate(data)
+            toast.success('Money borrowed successfully')
+          }}
           isPending={borrowMutation.isPending}
           error={borrowMutation.error}
         />
@@ -312,7 +319,10 @@ function PeoplePageContent(props: ContentProps) {
           loan={settleLoan}
           onClose={() => setSettleLoan(null)}
           accounts={accounts}
-          onSubmit={settleMutation.mutate}
+          onSubmit={(data) => {
+            settleMutation.mutate(data)
+            toast.success('Settlement recorded')
+          }}
           isPending={settleMutation.isPending}
           error={settleMutation.error}
         />

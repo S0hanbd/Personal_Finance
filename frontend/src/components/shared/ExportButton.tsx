@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Download, Loader2, ChevronDown, FileText, FileSpreadsheet, Settings2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ReportOptions } from '@/types'
@@ -26,6 +27,9 @@ export function ExportButton({ options, onCustomizePdf, className }: ExportButto
     setLoading(option.label)
     try {
       await option.onClick()
+      toast.success('Export completed')
+    } catch {
+      toast.error('Export failed')
     } finally {
       setLoading(null)
     }
@@ -118,6 +122,9 @@ export function ExportButton({ options, onCustomizePdf, className }: ExportButto
             setLoading('Custom PDF')
             try {
               await onCustomizePdf(opts)
+              toast.success('Custom PDF exported')
+            } catch {
+              toast.error('Export failed')
             } finally {
               setLoading(null)
               setShowCustomize(false)

@@ -1,7 +1,54 @@
 import { useState } from 'react'
-import { Plus, LogOut, User as UserIcon } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Plus, LogOut, User as UserIcon, ChevronRight } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
+
+const routeLabels: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/transactions': 'Transactions',
+  '/accounts': 'Accounts',
+  '/bills': 'Bills',
+  '/obligations': 'Obligations',
+  '/budget': 'Budget',
+  '/planned-spending': 'Planned Spending',
+  '/people': 'People',
+  '/analytics': 'Analytics',
+  '/projects': 'Projects',
+  '/settings': 'Settings',
+}
+
+function Breadcrumbs() {
+  const location = useLocation()
+  const parts = location.pathname.split('/').filter(Boolean)
+
+  if (parts.length === 0 || location.pathname === '/dashboard') return null
+
+  const crumbs = parts.map((part, i) => {
+    const path = '/' + parts.slice(0, i + 1).join('/')
+    const label = routeLabels[path] || part.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    return { path, label }
+  })
+
+  return (
+    <nav aria-label="Breadcrumb" className="mb-1">
+      <ol className="flex items-center gap-1 text-xs text-muted-foreground">
+        <li>
+          <a href="/dashboard" className="hover:text-foreground transition-colors">Home</a>
+        </li>
+        {crumbs.map((crumb, i) => (
+          <li key={crumb.path} className="flex items-center gap-1">
+            <ChevronRight size={10} aria-hidden="true" />
+            {i === crumbs.length - 1
+              ? <span className="text-foreground font-medium">{crumb.label}</span>
+              : <a href={crumb.path} className="hover:text-foreground transition-colors">{crumb.label}</a>
+            }
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
 
 interface HeaderProps {
   onQuickAdd?: () => void
@@ -23,6 +70,7 @@ export function Header({ onQuickAdd }: HeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3.5">
+        <Breadcrumbs />
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight">

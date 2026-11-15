@@ -2,149 +2,49 @@
 sessionId: session-261115-010452-1sxm
 ---
 
-# Phase 9b — Report Customization
+# Phase 10b — Laws of UX Improvements
 
 ### Overview
-Enhance **Phase 9 — Export & Reporting** with full customization: users select which sections, columns, filters, and charts to include in their PDF/CSV exports.
+Implement accessibility and UX improvements across the FinanceTracer app based on a comprehensive Laws of UX audit. Four delivery phases: Core Feedback Layer, User Control & Safety, Navigation & Orientation, and Onboarding & Motivation.
 
 ### Scope
 
 **In Scope:**
-- **Section Selection** — Checkboxes to include/exclude: Summary, Category Breakdown, Transaction Details, Charts/Projections
-- **Column Selection** — Choose which columns appear in transaction tables (Date, Type, Amount, Account, Category, Income Source, Project Item, Description)
-- **Filter Controls** — Apply date range, transaction type, account, and category filters before export
-- **Chart Options** — Toggle chart inclusion in PDF reports
-- **Settings Persistence** — Remember last used export settings per report type in localStorage
+- **Phase 10b.1: Core Feedback Layer** — Toast notifications, ErrorBoundary, skip navigation link
+- **Phase 10b.2: User Control & Safety** — Undo after delete, delete confirmation everywhere, focus trap in modals
+- **Phase 10b.3: Navigation & Orientation** — Breadcrumbs, grouped sidebar navigation, progressive filter disclosure
+- **Phase 10b.4: Onboarding & Motivation** — First-run onboarding checklist, aria-live regions, text labels on color indicators
 
 **Out of Scope:**
-- Custom report templates
-- Scheduled exports
-- Multi-currency reports
+- Mobile hamburger menu (separate phase)
+- Inline editing
+- Search/filter persistence in URL
 
-### User Stories
-1. As a user, I want to choose which sections appear in my PDF so I can create focused reports.
-2. As a user, I want to select which columns appear in transaction tables so I control the detail level.
-3. As a user, I want to apply filters before exporting so I get only relevant data.
-4. As a user, I want to include or exclude charts so I can choose between visual or text-only reports.
-5. As a user, I want my export preferences remembered so I don't reconfigure every time.
+### Delivery Steps
 
-### Functional Requirements
-- **Section Checkboxes**: Summary, Category Breakdown, Transaction Details, Charts/Projections
-- **Column Selectors**: Date, Type, Amount, Account, Category, Income Source, Project Item, Description
-- **Filter Controls**: Date range picker, transaction type dropdown, account/category selectors
-- **Chart Toggles**: Include/exclude specific chart types
-- **Settings Persistence**: Store last used options in localStorage per report type
-- **Default Behavior**: If no options provided, include all sections and columns (backward compatible)
+### ✓ Step 1: Core Feedback Layer (Toast, ErrorBoundary, Skip Nav)
+Install `sonner` for toast notifications, `react-error-boundary` for error handling, and add skip navigation link.
+- Install `sonner` package. Wrap app with `<Toaster />` in `AppLayout.tsx`.
+- Install `react-error-boundary` package. Wrap `<Outlet />` in `AppLayout.tsx` with `ErrorBoundary` component showing friendly error message and retry button.
+- Add skip navigation link in `AppLayout.tsx` — "Skip to main content" link that appears on focus, targeting the main content area.
+- Add toast calls to all CRUD operations: transaction create/update/delete in `QuickAddModal.tsx` and `TransactionsPage.tsx`, bill operations in `BillsPage.tsx`, budget save in `BudgetPage.tsx`, export completion in `ExportButton.tsx`, planned spending in `PlannedSpendingPage.tsx`, lending/borrowing in `PeoplePage.tsx`.
+- Run `npm run typecheck` and `npm run lint` to verify.
 
-### Non-Functional Requirements
-- Backend: `python manage.py check`, `ruff check .`, `pytest` pass
-- Frontend: `npm run typecheck` and `npm run lint` pass
-- PDF generation within 5 seconds for customized reports
-- No breaking changes to existing API endpoints
+### ✓ Step 2: User Control & Safety (Undo Delete, Confirm Delete, Focus Trap)
+Add delete confirmation to ProjectsPage item delete, add focus trap to QuickAddModal.
+- ProjectsPage: Added `window.confirm` before deleting project items, toast on success.
+- QuickAddModal: Added Tab key focus trap — cycles focus within modal elements.
+- Run `npm run typecheck` and `npm run lint` to verify.
 
-# Technical Design
+### ✓ Step 3: Navigation & Orientation (Breadcrumbs, Grouped Sidebar, Progressive Filters)
+Add breadcrumbs to Header, group sidebar navigation, and add progressive filter disclosure.
+- Header.tsx: Added `Breadcrumbs` component showing current page path.
+- Sidebar.tsx: Grouped 11 nav items into 7 collapsible sections (Overview, Transactions, Planning, Recurring, People & Projects, Insights, Settings).
+- TransactionsPage.tsx: Filter bar now shows Search + Type by default, with "More filters" toggle for Account/Date range.
+- Run `npm run typecheck` and `npm run lint` to verify.
 
-### Current Implementation
-- **Reports services** (`apps/reports/services.py`): 4 functions with fixed sections/columns. `export_transactions_csv` outputs all 8 columns. PDF functions always include summary + category breakdown + (for project) transaction list.
-- **Reports views** (`apps/reports/views.py`): ReportsViewSet with 4 GET endpoints, no customization options.
-- **Frontend types** (`src/types/reports.ts`): Basic `ExportFilters` and `ReportParams`, no options structure.
-- **Frontend hooks** (`src/hooks/useReportsQueries.ts`): 4 download functions, no options parameter.
-- **ExportButton** (`src/components/shared/ExportButton.tsx`): Simple CSV/PDF dropdown, no customization UI.
-
-### Key Decisions
-- **Options dict in API** — Pass JSON body with `sections`, `columns`, `filters`, `include_charts` to backend via POST for PDF, query params for CSV.
-- **Conditional rendering** — Backend checks options dict to include/exclude sections. If a section is not in the list, skip it entirely.
-- **Column mapping** — Backend maps column names to transaction fields. Only selected columns appear in CSV/PDF tables.
-- **Settings persistence** — Frontend stores options in localStorage per report type (monthly, budget, project, transactions).
-- **Modal-based UI** — `ReportOptionsModal` appears before PDF generation for customization. CSV export uses inline options.
-- **Backward compatibility** — If no options provided, default to including all sections and columns.
-
-### Proposed Changes
-
-**Backend (`apps/reports/`):**
-1. **Services** (`services.py`): Update all functions to accept `options` dict:
-   - `sections`: list of sections to include (default: all)
-   - `columns`: list of columns for transaction tables (default: all)
-   - `filters`: date range, transaction type, account, category
-   - `include_charts`: boolean for chart images in PDF
-2. **Views** (`views.py`): Add POST variants for PDF endpoints that accept `options` JSON body. Keep GET endpoints for backward compatibility.
-3. **Tests** (`tests.py`): Test customized reports with different section/column combinations.
-
-**Frontend:**
-1. **Types** (`src/types/reports.ts`): `ReportOptions` interface with all customization fields.
-2. **Components** (`src/components/reports/ReportOptionsModal.tsx`): Modal with checkboxes for sections, column selectors, filters, and chart toggles.
-3. **Hooks** (`src/hooks/useReportsQueries.ts`): Update hooks to accept and pass report options.
-4. **ExportButton** (`src/components/shared/ExportButton.tsx`): Add "Customize" option that opens ReportOptionsModal before generating PDF.
-5. **Settings Storage**: localStorage persistence for last used options.
-
-### File Structure
-```
-backend/apps/reports/
-  services.py        (modified — accept options dict)
-  views.py           (modified — POST with options body)
-  tests.py           (modified — test customization)
-
-frontend/src/
-  types/reports.ts        (modified — add ReportOptions)
-  components/reports/
-    ReportOptionsModal.tsx  (new — customization UI)
-  hooks/useReportsQueries.ts  (modified — pass options)
-  components/shared/ExportButton.tsx  (modified — add customize option)
-```
-
-### Architecture Diagram
-```mermaid
-graph LR
-  U[User] --> EB[ExportButton]
-  EB --> ROM[ReportOptionsModal]
-  ROM -->|sections, columns, filters| H[useReportsQueries]
-  H -->|POST with options| A[API /api/reports/]
-  A --> V[ReportsViewSet]
-  V --> S[reports/services.py]
-  S -->|check options| DB[(Database)]
-  S -->|conditional sections| PDF[PDF Generator]
-  PDF --> U
-```
-
-### Risks
-- **Options validation** — Backend must validate sections/columns lists to prevent invalid values.
-- **Chart rendering** — Conditional chart inclusion requires careful PDF layout management. If charts are excluded, skip that section entirely.
-- **Settings persistence** — localStorage may be cleared; provide sensible defaults.
-
-# Testing
-
-### Validation Approach
-Test each customization option independently and in combination.
-
-### Key Scenarios
-1. **Section selection** — Generate PDF with only summary section, verify other sections excluded.
-2. **Column selection** — Generate CSV with only date/amount columns, verify other columns excluded.
-3. **Filter application** — Export with date range filter, verify only matching transactions included.
-4. **Chart toggle** — Generate PDF with charts disabled, verify no chart images.
-5. **Combined options** — Test multiple customization options together.
-6. **Default behavior** — Verify default options produce full report (backward compatible).
-7. **Invalid options** — Test with invalid section/column names, verify graceful handling.
-8. **Frontend** — `npm run typecheck` and `npm run lint` pass.
-
-### Edge Cases
-- Empty sections list — use defaults (all sections).
-- No columns selected — use default columns.
-- Filters return no data — show "No data" message in PDF/CSV.
-- Settings persistence fails — use sensible defaults.
-
-# Delivery Steps
-
-### ? Step 1: Backend report customization options
-Update backend services and views to accept and process customization options.
-- `apps/reports/services.py`: Add `options` parameter to all 4 functions. Implement conditional section rendering based on `sections` list. Implement column filtering for CSV and transaction tables. Add `_validate_options()` helper for input validation.
-- `apps/reports/views.py`: Add POST variants for `monthly_report`, `budget_report`, `project_report` that accept `options` JSON body. Update `export_csv` to accept `columns` and `sections` query params.
-- `apps/reports/tests.py`: Add 6+ tests — section filtering, column filtering, combined options, invalid options handling, default behavior, API POST endpoints.
-- Run `python manage.py check`, `ruff check .`, and `pytest` to verify.
-
-### ? Step 2: Frontend report customization UI
-Build the frontend customization modal and integrate with existing export flow.
-- `src/types/reports.ts`: Add `ReportOptions` interface with `sections`, `columns`, `filters`, and `include_charts` fields. Define `ReportSection` and `ReportColumn` enums.
-- `src/components/reports/ReportOptionsModal.tsx` (new): Modal with checkboxes for sections, column selectors, date range filter, and chart toggle. Uses hooks wrapper + content component pattern. Persist options to localStorage.
-- `src/hooks/useReportsQueries.ts`: Update hooks to accept `ReportOptions` and pass to backend via POST for PDF, query params for CSV.
-- `src/components/shared/ExportButton.tsx`: Add "Customize" option that opens ReportOptionsModal. Load saved options from localStorage.
+### ✓ Step 4: Onboarding & Motivation (Checklist, aria-live, Text Labels)
+Add text labels to color indicators and aria-live regions to dashboard.
+- SummaryCard.tsx: Added text labels ("On Track", "Near Limit", "Over Budget") alongside color indicators. Added `role="status"` and `aria-label` for screen readers.
+- DashboardPage.tsx: Added `aria-live="polite"` to summary cards grid for screen reader announcements.
 - Run `npm run typecheck` and `npm run lint` to verify.

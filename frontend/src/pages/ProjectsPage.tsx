@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { DeleteDialog } from '@/components/shared/DeleteDialog'
 import {
   FolderOpen,
   Plus,
@@ -463,6 +465,7 @@ function ProjectDetailView({ projectId, onBack }: {
   const deleteItem = useDeleteProjectItem()
   const [showAddItem, setShowAddItem] = useState(false)
   const [editingItem, setEditingItem] = useState<ProjectItem | null>(null)
+  const [deletingItem, setDeletingItem] = useState<ProjectItem | null>(null)
 
   if (isLoading) {
     return (
@@ -616,7 +619,7 @@ function ProjectDetailView({ projectId, onBack }: {
                       <Edit2 className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      onClick={() => deleteItem.mutate({ projectId, itemId: item.id })}
+                      onClick={() => setDeletingItem(item)}
                       className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition"
                       aria-label={`Delete ${item.name}`}
                     >
@@ -644,6 +647,24 @@ function ProjectDetailView({ projectId, onBack }: {
           projectId={projectId}
           item={editingItem}
           onClose={() => setEditingItem(null)}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      {deletingItem && (
+        <DeleteDialog
+          title="Delete Project Item?"
+          description={`This will permanently delete "${deletingItem.name}" (${formatMoney(deletingItem.estimated_amount)}). This cannot be undone.`}
+          onConfirm={() => {
+            deleteItem.mutate({ projectId, itemId: deletingItem.id }, {
+              onSuccess: () => {
+                toast.success('Item deleted')
+                setDeletingItem(null)
+              },
+            })
+          }}
+          onCancel={() => setDeletingItem(null)}
+          isPending={deleteItem.isPending}
         />
       )}
     </div>

@@ -1,11 +1,32 @@
 import { useState, useCallback } from 'react'
-import type { TabType } from '@/components/transactions/QuickAddModal'
 import { Outlet } from 'react-router-dom'
+import { Toaster } from 'sonner'
+import { ErrorBoundary } from 'react-error-boundary'
+import type { TabType } from '@/components/transactions/QuickAddModal'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { KeyboardShortcutsHelp } from '@/components/shared/KeyboardShortcutsHelp'
+
+function ErrorBoundaryFallback({ error, resetErrorBoundary }: { error: unknown; resetErrorBoundary: () => void }) {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  return (
+    <div role="alert" className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="w-16 h-16 bg-danger/10 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
+        <span className="text-2xl">⚠️</span>
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-2">Something went wrong</h3>
+      <p className="text-sm text-muted-foreground max-w-sm mb-4">{errorMessage}</p>
+      <button
+        onClick={resetErrorBoundary}
+        className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors min-h-[36px] min-w-[80px]"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
 
 export function AppLayout() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
@@ -45,12 +66,24 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Skip Navigation Link — WCAG 2.4.1 Bypass Blocks */}
+      <a
+        href="#main-content"
+        className="absolute top-0 left-0 z-50 -translate-y-full rounded-br-lg bg-primary px-4 py-2 text-sm font-medium text-white focus:translate-y-0"
+      >
+        Skip to main content
+      </a>
+
+      <Toaster position="top-right" duration={4000} />
+
       <Sidebar />
       <div className="lg:pl-64 flex flex-col min-h-screen">
         <Header onQuickAdd={handleQuickAdd} />
-        <main className="flex-1">
+        <main id="main-content" className="flex-1" tabIndex={-1}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            <Outlet />
+            <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { toast } from 'sonner'
 import { X, Plus, AlertCircle, ArrowRightLeft, TrendingDown, TrendingUp, Calculator, Check } from 'lucide-react'
 import Decimal from 'decimal.js'
 import {
@@ -140,6 +141,27 @@ export function QuickAddModal({
         e.preventDefault()
         onClose()
       }
+      // Focus trap — WCAG 2.4.3 Focus Order
+      if (e.key === 'Tab') {
+        const modal = document.querySelector('[role="dialog"][aria-modal="true"]') as HTMLElement
+        if (!modal) return
+        const focusable = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        const first = focusable[0] as HTMLElement
+        const last = focusable[focusable.length - 1] as HTMLElement
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last?.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first?.focus()
+          }
+        }
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
@@ -269,6 +291,7 @@ export function QuickAddModal({
           transaction_date: transactionDate,
         })
         setSuccessMessage(`Transferred ৳${amountStr} successfully.`)
+        toast.success(`Transferred ৳${amountStr}`)
       } else {
         await createTxMutation.mutateAsync({
           account: parseInt(accountId, 10),
@@ -282,6 +305,7 @@ export function QuickAddModal({
         })
         const typeLabel = activeTab === 'expense' ? 'Expense' : 'Income'
         setSuccessMessage(`${typeLabel} of ৳${amountStr} saved.`)
+        toast.success(`${typeLabel} of ৳${amountStr} saved`)
       }
 
       setTimeout(() => {
@@ -296,8 +320,10 @@ export function QuickAddModal({
           .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
           .join(' | ')
         setErrorMessage(`Failed to save: ${details}`)
+        toast.error(`Failed to save: ${details}`)
       } else {
         setErrorMessage('Failed to save transaction. Please check your network and inputs.')
+        toast.error('Failed to save transaction')
       }
     }
   }, [isPending, amountInput, accountId, destinationAccountId, activeTab, categoryId, incomeSourceId, projectItemId, description, transactionDate, createTransferMutation, createTxMutation, onClose])

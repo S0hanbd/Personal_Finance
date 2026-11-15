@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { toast } from 'sonner'
 import {
   Calendar,
   ChevronLeft,
@@ -175,6 +176,7 @@ function SetBudgetModal({
         notes,
         allocations: payloadAllocations,
       })
+      toast.success('Budget saved successfully')
       onClose()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } }

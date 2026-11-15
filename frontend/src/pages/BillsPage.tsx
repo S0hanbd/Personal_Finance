@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import {
   CalendarClock,
   Plus,
@@ -64,10 +65,15 @@ function PayBillModal({ occurrence, onClose }: PayBillModalProps) {
         description: description.trim(),
       },
       {
-        onSuccess: () => onClose(),
+        onSuccess: () => {
+          toast.success('Bill paid successfully')
+          onClose()
+        },
         onError: (err: unknown) => {
           const res = (err as { response?: { data?: { error?: string } } })?.response?.data
-          setError(res?.error || 'Failed to record bill payment. Please try again.')
+          const msg = res?.error || 'Failed to record bill payment'
+          setError(msg)
+          toast.error(msg)
         },
       }
     )
@@ -249,13 +255,16 @@ function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
       },
       {
         onSuccess: () => {
+          toast.success('Recurring bill created')
           setName('')
           amountInput.reset()
           setDescription('')
           onClose()
         },
         onError: () => {
-          setError('Failed to create recurring bill. Check your connection and retry.')
+          const msg = 'Failed to create recurring bill'
+          setError(msg)
+          toast.error(msg)
         },
       }
     )

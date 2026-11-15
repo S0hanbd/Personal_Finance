@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { toast } from 'sonner'
+import { DeleteDialog } from '@/components/shared/DeleteDialog'
 import {
   ShoppingBag,
   Plus,
@@ -423,6 +425,7 @@ function AddPlannedPurchaseModal({ isOpen, onClose }: AddModalProps) {
 
     try {
       await createMutation.mutateAsync(payload)
+      toast.success('Planned purchase added')
       onClose()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } }
@@ -632,6 +635,7 @@ export function PlannedSpendingPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [settlingItem, setSettlingItem] = useState<PlannedPurchase | null>(null)
+  const [deletingItem, setDeletingItem] = useState<PlannedPurchase | null>(null)
 
   const {
     data: items = [],
@@ -672,10 +676,15 @@ export function PlannedSpendingPage() {
     })
   }
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this planned purchase?')) {
-      await deleteMutation.mutateAsync(id)
-    }
+  const handleDelete = (item: PlannedPurchase) => {
+    setDeletingItem(item)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return
+    await deleteMutation.mutateAsync(deletingItem.id)
+    toast.success('Planned purchase deleted')
+    setDeletingItem(null)
   }
 
   return (
@@ -919,7 +928,7 @@ export function PlannedSpendingPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => handleDelete(item)}
                   aria-label={`Delete ${item.name}`}
                   className="rounded-lg p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
                 >
@@ -934,6 +943,17 @@ export function PlannedSpendingPage() {
       {/* Modals */}
       <AddPlannedPurchaseModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
       <SettleModal item={settlingItem} onClose={() => setSettlingItem(null)} />
+
+      {/* Delete Confirmation */}
+      {deletingItem && (
+        <DeleteDialog
+          title="Delete Planned Purchase?"
+          description={`This will permanently delete "${deletingItem.name}" (${formatMoney(deletingItem.estimated_amount)}). This cannot be undone.`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingItem(null)}
+          isPending={deleteMutation.isPending}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { Plus, Search, Filter, Trash2, ArrowRightLeft, TrendingDown, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import { Plus, Search, Filter, Trash2, ArrowRightLeft, TrendingDown, TrendingUp, AlertCircle, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { useTransactions, useDeleteTransaction, type TransactionFilters } from '@/hooks/useTransactions'
 import { useAccounts } from '@/hooks/useFinanceQueries'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
@@ -148,11 +149,13 @@ const TX_TYPE_OPTIONS: { value: string; label: string }[] = [
 ]
 
 function FilterBar({ filters, onFilterChange, onClear, accounts, hasActiveFilters }: FilterBarProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Search */}
-        <div className="sm:col-span-2 md:col-span-1">
+        <div>
           <label htmlFor="tx-search" className="block text-xs font-medium text-muted-foreground mb-1">
             Search
           </label>
@@ -168,24 +171,6 @@ function FilterBar({ filters, onFilterChange, onClear, accounts, hasActiveFilter
               className="w-full h-9 pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
-        </div>
-
-        {/* Account */}
-        <div>
-          <label htmlFor="tx-account" className="block text-xs font-medium text-muted-foreground mb-1">
-            Account
-          </label>
-          <select
-            id="tx-account"
-            value={filters.account ?? ''}
-            onChange={(e) => onFilterChange({ account: e.target.value, page: 1 })}
-            className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <option value="">All Accounts</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={String(a.id)}>{a.name}</option>
-            ))}
-          </select>
         </div>
 
         {/* Type */}
@@ -204,47 +189,83 @@ function FilterBar({ filters, onFilterChange, onClear, accounts, hasActiveFilter
             ))}
           </select>
         </div>
+      </div>
 
-        {/* From Date */}
-        <div>
-          <label htmlFor="tx-start" className="block text-xs font-medium text-muted-foreground mb-1">
-            From Date
-          </label>
-          <input
-            id="tx-start"
-            type="date"
-            value={filters.start_date ?? ''}
-            onChange={(e) => onFilterChange({ start_date: e.target.value, page: 1 })}
-            className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          />
-        </div>
+      {/* Advanced Filters Toggle */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+        className="flex items-center gap-1 mt-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        aria-expanded={showAdvanced}
+      >
+        {showAdvanced
+          ? <ChevronDown size={12} aria-hidden="true" />
+          : <ChevronRight size={12} aria-hidden="true" />
+        }
+        More filters
+      </button>
 
-        {/* To Date */}
-        <div>
-          <label htmlFor="tx-end" className="block text-xs font-medium text-muted-foreground mb-1">
-            To Date
-          </label>
-          <div className="flex gap-2">
+      {showAdvanced && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border mt-2">
+          {/* Account */}
+          <div>
+            <label htmlFor="tx-account" className="block text-xs font-medium text-muted-foreground mb-1">
+              Account
+            </label>
+            <select
+              id="tx-account"
+              value={filters.account ?? ''}
+              onChange={(e) => onFilterChange({ account: e.target.value, page: 1 })}
+              className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <option value="">All Accounts</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={String(a.id)}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* From Date */}
+          <div>
+            <label htmlFor="tx-start" className="block text-xs font-medium text-muted-foreground mb-1">
+              From Date
+            </label>
             <input
-              id="tx-end"
+              id="tx-start"
               type="date"
-              value={filters.end_date ?? ''}
-              onChange={(e) => onFilterChange({ end_date: e.target.value, page: 1 })}
+              value={filters.start_date ?? ''}
+              onChange={(e) => onFilterChange({ start_date: e.target.value, page: 1 })}
               className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={onClear}
-                title="Clear all filters"
-                className="h-9 px-2.5 rounded-lg border border-border bg-muted/40 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
-              >
-                Clear
-              </button>
-            )}
+          </div>
+
+          {/* To Date */}
+          <div>
+            <label htmlFor="tx-end" className="block text-xs font-medium text-muted-foreground mb-1">
+              To Date
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="tx-end"
+                type="date"
+                value={filters.end_date ?? ''}
+                onChange={(e) => onFilterChange({ end_date: e.target.value, page: 1 })}
+                className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              />
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={onClear}
+                  title="Clear all filters"
+                  className="h-9 px-2.5 rounded-lg border border-border bg-muted/40 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -506,7 +527,10 @@ export function TransactionsPage() {
           onCancel={() => setPendingDeleteId(null)}
           onConfirm={() => {
             deleteMutation.mutate(pendingTx.id, {
-              onSuccess: () => setPendingDeleteId(null),
+              onSuccess: () => {
+                setPendingDeleteId(null)
+                toast.success('Transaction deleted')
+              },
             })
           }}
         />
