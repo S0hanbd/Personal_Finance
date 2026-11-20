@@ -19,6 +19,24 @@ const config: Config = {
         muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
         accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        // Vibrant palette from design reference
+        electric: {
+          blue: '#3A4EFB',
+          sky: '#33A4FA',
+        },
+        lime: {
+          DEFAULT: '#E3FF3B',
+          foreground: '#252943',
+        },
+        navy: {
+          DEFAULT: '#252943',
+          light: '#3A3F58',
+        },
+        lavender: {
+          DEFAULT: '#DEE0ED',
+          light: '#EDEDF5',
+          dark: '#C8CBDB',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

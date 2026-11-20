@@ -46,28 +46,28 @@ function getStatusBadge(status: BudgetStatus | 'normal' | 'warning' | 'exceeded'
   switch (status) {
     case 'normal':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+        <span className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
           <ShieldCheck className="h-3 w-3" />
           On Track
         </span>
       )
     case 'warning':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+        <span className="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
           <AlertTriangle className="h-3 w-3" />
           Near Limit (≥80%)
         </span>
       )
     case 'exceeded':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700">
+        <span className="inline-flex items-center gap-1 rounded-full border border-danger/20 bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">
           <AlertOctagon className="h-3 w-3" />
           Exceeded
         </span>
       )
     default:
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-slate-600">
           Unconfigured
         </span>
       )
@@ -77,11 +77,11 @@ function getStatusBadge(status: BudgetStatus | 'normal' | 'warning' | 'exceeded'
 function getProgressColor(status: BudgetStatus | 'normal' | 'warning' | 'exceeded') {
   switch (status) {
     case 'normal':
-      return 'bg-emerald-500'
+      return 'bg-success/100'
     case 'warning':
-      return 'bg-amber-500'
+      return 'bg-warning/100'
     case 'exceeded':
-      return 'bg-rose-500'
+      return 'bg-danger/100'
     default:
       return 'bg-slate-300'
   }
@@ -191,7 +191,7 @@ function SetBudgetModal({
       aria-labelledby="budget-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
     >
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div>
             <h2 id="budget-modal-title" className="text-base font-semibold text-foreground">
@@ -317,7 +317,7 @@ function SetBudgetModal({
             <button
               type="submit"
               disabled={upsertBudget.isPending}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-xs font-semibold text-white hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue disabled:opacity-50"
             >
               {upsertBudget.isPending ? (
                 <>
@@ -380,7 +380,7 @@ export function BudgetPage() {
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Monthly Budget Limits</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-navy">Monthly Budget Limits</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Ceilings, category allocations, and variable spending performance
           </p>
@@ -388,7 +388,7 @@ export function BudgetPage() {
 
         {/* Month Selector Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-sm">
+          <div className="flex items-center rounded-xl border border-border bg-white p-1">
             <button
               type="button"
               onClick={handlePrevMonth}
@@ -426,7 +426,7 @@ export function BudgetPage() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-2 text-xs font-semibold text-white hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
           >
             {performance?.has_budget ? (
               <>
@@ -479,17 +479,17 @@ export function BudgetPage() {
         <div className="space-y-6 animate-pulse">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-2xl border border-border bg-card p-4 space-y-2">
+              <div key={i} className="h-24 rounded-2xl border border-border bg-white p-4 space-y-2">
                 <div className="h-3 w-20 bg-muted rounded" />
                 <div className="h-6 w-32 bg-muted rounded" />
               </div>
             ))}
           </div>
-          <div className="h-40 rounded-2xl border border-border bg-card p-6" />
+          <div className="h-40 rounded-2xl border border-border bg-white p-6" />
         </div>
       ) : performance && !performance.has_budget ? (
         /* Empty State: No Budget Configured */
-        <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm space-y-4">
+        <div className="rounded-2xl border border-border bg-white p-8 text-center space-y-4">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground">
             <Sliders className="h-6 w-6" />
           </div>
@@ -505,7 +505,7 @@ export function BudgetPage() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
             >
               <Plus className="h-3.5 w-3.5" />
               Set Budget for {MONTH_NAMES[selectedMonth - 1]}
@@ -517,7 +517,7 @@ export function BudgetPage() {
         <div className="space-y-6">
           {/* 4 Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-1">
+            <div className="rounded-2xl border border-border bg-white p-4 space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Monthly Budget Limit</span>
               <p className="text-xl font-bold text-foreground tabular-nums">
                 {formatMoney(performance.budget_limit)}
@@ -525,7 +525,7 @@ export function BudgetPage() {
               <p className="text-[11px] text-muted-foreground">Configured spending ceiling</p>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-1">
+            <div className="rounded-2xl border border-border bg-white p-4 space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Variable Spent</span>
               <p className="text-xl font-bold text-foreground tabular-nums">
                 {formatMoney(performance.variable_spent)}
@@ -535,13 +535,13 @@ export function BudgetPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-1">
+            <div className="rounded-2xl border border-border bg-white p-4 space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Budget Remaining</span>
               <p
                 className={`text-xl font-bold tabular-nums ${
                   parseFloat(performance.remaining_budget) >= 0
-                    ? 'text-emerald-600'
-                    : 'text-rose-600'
+                    ? 'text-success'
+                    : 'text-danger'
                 }`}
               >
                 {formatMoney(performance.remaining_budget)}
@@ -549,9 +549,9 @@ export function BudgetPage() {
               <div className="pt-0.5">{getStatusBadge(performance.status)}</div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-1">
+            <div className="rounded-2xl border border-border bg-white p-4 space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Fixed Recurring Bills</span>
-              <p className="text-xl font-bold text-slate-700 tabular-nums">
+              <p className="text-xl font-bold text-foreground tabular-nums">
                 {formatMoney(performance.fixed_spent)}
               </p>
               <p className="text-[11px] text-muted-foreground">Excluded from variable budget</p>
@@ -559,7 +559,7 @@ export function BudgetPage() {
           </div>
 
           {/* Health Gauge Progress Bar */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-3">
+          <div className="rounded-2xl border border-border bg-white p-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PieChart className="h-4 w-4 text-primary" />
@@ -587,7 +587,7 @@ export function BudgetPage() {
           </div>
 
           {/* Category Allocations & Actual Spending */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-border bg-white p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Category Breakdown</h2>

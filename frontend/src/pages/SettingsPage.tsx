@@ -30,7 +30,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-foreground">Settings</h2>
+      <h2 className="text-2xl font-bold text-navy">Settings</h2>
 
       {/* Tab navigation */}
       <div className="flex gap-1 border-b border-border">

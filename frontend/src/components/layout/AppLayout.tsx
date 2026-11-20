@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { ErrorBoundary } from 'react-error-boundary'
+import { cn } from '@/lib/utils'
 import type { TabType } from '@/components/transactions/QuickAddModal'
-import { Sidebar } from './Sidebar'
+import { Sidebar, MobileNav } from './Sidebar'
 import { Header } from './Header'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -32,6 +33,12 @@ export function AppLayout() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const [quickAddTab, setQuickAddTab] = useState<TabType>('expense')
   const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => !prev)
+  }, [])
 
   const handleQuickAddExpense = useCallback(() => {
     setQuickAddTab('expense')
@@ -57,6 +64,26 @@ export function AppLayout() {
     setIsHelpOpen((prev) => !prev)
   }, [])
 
+  const handleToggleMobileNav = useCallback(() => {
+    setIsMobileNavOpen((prev) => !prev)
+  }, [])
+
+  const handleCloseMobileNav = useCallback(() => {
+    setIsMobileNavOpen(false)
+  }, [])
+
+  // Close mobile nav on Escape key
+  useEffect(() => {
+    if (!isMobileNavOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseMobileNav()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isMobileNavOpen, handleCloseMobileNav])
+
   const { shortcuts } = useKeyboardShortcuts({
     onQuickAddExpense: handleQuickAddExpense,
     onQuickAddIncome: handleQuickAddIncome,
@@ -76,9 +103,10 @@ export function AppLayout() {
 
       <Toaster position="top-right" duration={4000} />
 
-      <Sidebar />
-      <div className="lg:pl-64 flex flex-col min-h-screen">
-        <Header onQuickAdd={handleQuickAdd} />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
+      <MobileNav isOpen={isMobileNavOpen} onClose={handleCloseMobileNav} />
+      <div className={cn('flex flex-col min-h-screen', sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64')}>
+        <Header onQuickAdd={handleQuickAdd} onToggleMobileNav={handleToggleMobileNav} />
         <main id="main-content" className="flex-1" tabIndex={-1}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>

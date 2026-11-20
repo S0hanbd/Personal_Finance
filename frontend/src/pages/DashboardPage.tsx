@@ -3,12 +3,21 @@ import { Link } from 'react-router-dom'
 import {
   Wallet,
   ArrowRight,
-  Plus,
   ArrowRightLeft,
   TrendingDown,
   TrendingUp,
   AlertCircle,
   RefreshCw,
+  BarChart3,
+  PieChart,
+  Activity,
+  Plus,
+  HandCoins,
+  CreditCard,
+  ReceiptText,
+  FileClock,
+  Target,
+  PieChart as PieChartIcon,
 } from 'lucide-react'
 import { SummaryCard } from '@/components/shared/SummaryCard'
 import { useAccounts } from '@/hooks/useFinanceQueries'
@@ -16,7 +25,11 @@ import { useTransactions } from '@/hooks/useTransactions'
 import { useCurrentMonthBills } from '@/hooks/useBillsQueries'
 import { useObligationSummary } from '@/hooks/useObligationsQueries'
 import { useBudgetPerformance } from '@/hooks/useBudgetQueries'
+import { useSpendingTrends, useSpendingByCategory } from '@/hooks/useAnalyticsQueries'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
+import { DashboardOverviewChart } from '@/components/dashboard/DashboardOverviewChart'
+import { SpendingBreakdownChart } from '@/components/dashboard/SpendingBreakdownChart'
+import { CashFlowTrendChart } from '@/components/dashboard/CashFlowTrendChart'
 import { formatMoney, sumMoney, subtractMoney } from '@/lib/money'
 import type { Transaction } from '@/types'
 import Decimal from 'decimal.js'
@@ -70,11 +83,26 @@ export function DashboardPage() {
     isLoading: budgetLoading,
   } = useBudgetPerformance()
 
+  // Analytics data for charts — current month range
+  const {
+    data: spendingTrendsData,
+    isLoading: trendsLoading,
+  } = useSpendingTrends({ start_date: firstDayOfMonth, end_date: lastDayOfMonth })
+
+  const {
+    data: categoryBreakdownData,
+    isLoading: categoryLoading,
+  } = useSpendingByCategory({ start_date: firstDayOfMonth, end_date: lastDayOfMonth })
+
   // Compute metrics with Decimal.js (NEVER floating-point)
   const activeAccounts = useMemo(() => accounts.filter((a) => a.status === 'active'), [accounts])
 
   const totalBalance = useMemo(() => {
     return sumMoney(activeAccounts.map((a) => a.current_balance))
+  }, [activeAccounts])
+
+  const cashBalance = useMemo(() => {
+    return sumMoney(activeAccounts.filter((a) => a.account_type === 'cash').map((a) => a.current_balance))
   }, [activeAccounts])
 
   const unpaidBills = useMemo(() => {
@@ -89,19 +117,17 @@ export function DashboardPage() {
     return new Decimal(obligationData?.total_pending || '0')
   }, [obligationData])
 
-  const { monthlyIncome, monthlyExpense, netCashflow } = useMemo(() => {
+  const { monthlyIncome, monthlyExpense } = useMemo(() => {
     const list = currentMonthData?.results ?? []
     const incomeTx = list.filter((t) => t.transaction_type === 'income')
     const expenseTx = list.filter((t) => t.transaction_type === 'expense')
 
     const income = sumMoney(incomeTx.map((t) => t.amount))
     const expense = sumMoney(expenseTx.map((t) => t.amount))
-    const net = subtractMoney(income, expense)
 
     return {
       monthlyIncome: income,
       monthlyExpense: expense,
-      netCashflow: net,
     }
   }, [currentMonthData])
 
@@ -110,6 +136,7 @@ export function DashboardPage() {
   }, [recentTxData])
 
   const isGlobalLoading = accountsLoading || txLoading || billsLoading || obligationLoading || budgetLoading
+  const isChartsLoading = trendsLoading || categoryLoading
   const hasError = accountsError || txError
 
   const openQuickAdd = (tab: 'expense' | 'income' | 'transfer') => {
@@ -117,21 +144,26 @@ export function DashboardPage() {
     setIsQuickAddOpen(true)
   }
 
+  // Format current month for display
+  const currentMonthLabel = useMemo(() => {
+    return now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }, [now])
+
   return (
-    <div className="space-y-8">
-      {/* Page Title & Quick Actions */}
+    <div className="space-y-6">
+      {/* SECTION 1: Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Financial Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-navy">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Real-time cashflow, liquid reserves, and recent activity
+            Overview of your financial activities · {currentMonthLabel}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => openQuickAdd('expense')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
           >
             <TrendingDown className="h-3.5 w-3.5" />
             + Expense
@@ -139,7 +171,7 @@ export function DashboardPage() {
           <button
             type="button"
             onClick={() => openQuickAdd('income')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-electric-blue/20 bg-electric-blue/5 px-3 py-2 text-xs font-semibold text-electric-blue hover:bg-electric-blue/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
           >
             <TrendingUp className="h-3.5 w-3.5" />
             + Income
@@ -147,7 +179,7 @@ export function DashboardPage() {
           <button
             type="button"
             onClick={() => openQuickAdd('transfer')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-electric-blue/20 bg-electric-blue/5 px-3 py-2 text-xs font-semibold text-electric-blue hover:bg-electric-blue/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
             Transfer
@@ -178,20 +210,23 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Summary Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" aria-live="polite" aria-atomic="false">
+      {/* SECTION 2: KPI Cards — Redesigned grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4" aria-live="polite" aria-atomic="false">
+        {/* Money on Hand — Cash accounts only */}
         <SummaryCard
-          title="Total Liquid Balance"
-          value={formatMoney(totalBalance)}
-          subtitle={`${activeAccounts.length} active account${activeAccounts.length !== 1 ? 's' : ''}`}
-          variant="default"
+          title="Money on Hand"
+          value={formatMoney(cashBalance)}
+          subtitle="Cash accounts"
+          variant="orange"
+          icon={HandCoins}
           isLoading={isGlobalLoading}
         />
         <SummaryCard
           title="Monthly Income"
           value={formatMoney(monthlyIncome)}
-          subtitle={`Net: ${netCashflow.greaterThanOrEqualTo(0) ? '+' : ''}${formatMoney(netCashflow)}`}
+          subtitle="This month"
           variant="success"
+          icon={TrendingUp}
           isLoading={isGlobalLoading}
         />
         <SummaryCard
@@ -199,36 +234,40 @@ export function DashboardPage() {
           value={formatMoney(monthlyExpense)}
           subtitle="This month"
           variant="danger"
+          icon={ReceiptText}
           isLoading={isGlobalLoading}
         />
         <SummaryCard
-          title="Unpaid Fixed Expenses"
+          title="Unpaid Bills"
           value={formatMoney(unpaidBills)}
-          subtitle="Recurring bills awaiting payment"
+          subtitle="Recurring bills"
           variant="warning"
+          icon={FileClock}
           isLoading={isGlobalLoading}
         />
         <SummaryCard
-          title="Remaining After Fixed Expenses"
+          title="Disposable"
           value={formatMoney(remainingAfterFixedBills)}
-          subtitle="Total Balance − Unpaid Bills"
+          subtitle="After fixed bills"
           variant={remainingAfterFixedBills.greaterThanOrEqualTo(0) ? 'success' : 'danger'}
+          icon={Wallet}
           isLoading={isGlobalLoading}
         />
         <SummaryCard
-          title="Future Obligations"
+          title="Obligations"
           value={formatMoney(pendingObligations)}
-          subtitle={`${obligationData?.pending_count ?? 0} pending commitment${(obligationData?.pending_count ?? 0) !== 1 ? 's' : ''}`}
+          subtitle={`${obligationData?.pending_count ?? 0} pending`}
           variant="default"
+          icon={Target}
           isLoading={isGlobalLoading}
         />
         <SummaryCard
           title="Budget Remaining"
-          value={budgetData?.has_budget ? formatMoney(budgetData.remaining_budget) : 'Unset'}
+          value={budgetData?.has_budget ? formatMoney(budgetData.remaining_budget) : '—'}
           subtitle={
             budgetData?.has_budget
-              ? `${budgetData.percentage_used}% used of ${formatMoney(budgetData.budget_limit)} ceiling`
-              : 'No monthly ceiling configured'
+              ? `${budgetData.percentage_used}% used`
+              : 'No budget set'
           }
           variant={
             !budgetData?.has_budget
@@ -239,26 +278,83 @@ export function DashboardPage() {
               ? 'warning'
               : 'success'
           }
+          icon={PieChartIcon}
+          isLoading={isGlobalLoading}
+        />
+        <SummaryCard
+          title="Net Cashflow"
+          value={formatMoney(subtractMoney(monthlyIncome, monthlyExpense))}
+          subtitle="Income − Expenses"
+          variant={monthlyIncome.greaterThanOrEqualTo(monthlyExpense) ? 'success' : 'danger'}
+          icon={CreditCard}
           isLoading={isGlobalLoading}
         />
       </div>
 
-      {/* Two Column Layout: Accounts & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Account Balances (1 col) */}
+      {/* SECTION 3: Analytics Charts — Two column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Daily Spending Overview */}
+        <div className="rounded-xl border border-lavender bg-white p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-navy">Daily Spending</h2>
+          </div>
+          {isChartsLoading ? (
+            <div className="flex items-center justify-center h-56">
+              <div className="w-full h-4 bg-muted rounded animate-pulse space-y-2" />
+            </div>
+          ) : (
+            <DashboardOverviewChart data={spendingTrendsData ?? []} />
+          )}
+        </div>
+
+        {/* Spending by Category */}
+        <div className="rounded-xl border border-lavender bg-white p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <PieChart className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-navy">Spending by Category</h2>
+          </div>
+          {isChartsLoading ? (
+            <div className="flex items-center justify-center h-56">
+              <div className="w-full h-4 bg-muted rounded animate-pulse" />
+            </div>
+          ) : (
+            <SpendingBreakdownChart data={categoryBreakdownData ?? []} />
+          )}
+        </div>
+
+        {/* Cash Flow Trend — Full width */}
+        <div className="lg:col-span-2 rounded-xl border border-lavender bg-white p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-navy">Cash Flow Trend</h2>
+          </div>
+          {isChartsLoading ? (
+            <div className="flex items-center justify-center h-56">
+              <div className="w-full h-4 bg-muted rounded animate-pulse" />
+            </div>
+          ) : (
+            <CashFlowTrendChart data={spendingTrendsData ?? []} />
+          )}
+        </div>
+      </div>
+
+      {/* SECTION 4 & 5: Account Balances + Recent Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Account Balances Panel */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">Accounts</h2>
+            <h2 className="text-sm font-semibold text-navy">Account Balances</h2>
             <Link
               to="/accounts"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-electric-blue hover:underline"
             >
-              <span>Manage</span>
+              <span>View all</span>
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3">
+          <div className="rounded-xl border border-lavender bg-white p-4 space-y-2">
             {accountsLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-center justify-between p-2 animate-pulse">
@@ -272,7 +368,7 @@ export function DashboardPage() {
                 <p className="text-xs text-muted-foreground">No accounts configured</p>
                 <Link
                   to="/accounts"
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-electric-blue hover:underline"
                 >
                   <Plus className="h-3 w-3" />
                   Create account
@@ -285,10 +381,10 @@ export function DashboardPage() {
                   className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/40 transition"
                 >
                   <div>
-                    <p className="text-xs font-semibold text-foreground line-clamp-1">{acc.name}</p>
+                    <p className="text-xs font-semibold text-navy line-clamp-1">{acc.name}</p>
                     <p className="text-[10px] text-muted-foreground capitalize">{acc.account_type.replace('_', ' ')}</p>
                   </div>
-                  <p className="text-xs font-bold text-foreground tabular-nums">
+                  <p className="text-xs font-bold text-navy tabular-nums">
                     {formatMoney(acc.current_balance)}
                   </p>
                 </div>
@@ -297,20 +393,20 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Recent Transactions (2 cols) */}
+        {/* Recent Transactions — 2 columns width */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">Recent Transactions</h2>
+            <h2 className="text-sm font-semibold text-navy">Recent Transactions</h2>
             <Link
               to="/transactions"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-electric-blue hover:underline"
             >
               <span>View all</span>
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-lavender bg-white overflow-hidden">
             {recentLoading ? (
               <div className="p-4 space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -341,10 +437,10 @@ export function DashboardPage() {
                       <div className="flex items-center gap-3 min-w-0">
                         <div
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isCredit
-                              ? 'bg-emerald-50 text-emerald-600'
+                              ? 'bg-success/10 text-success'
                               : isTransfer
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'bg-rose-50 text-rose-600'
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-danger/10 text-danger'
                             }`}
                         >
                           {isCredit ? (
@@ -367,10 +463,10 @@ export function DashboardPage() {
                       <div className="text-right shrink-0 ml-3">
                         <p
                           className={`text-xs font-bold tabular-nums ${isCredit
-                              ? 'text-emerald-600'
+                              ? 'text-success'
                               : isTransfer
-                                ? 'text-slate-700'
-                                : 'text-rose-600'
+                                ? 'text-foreground'
+                                : 'text-danger'
                             }`}
                         >
                           {isCredit ? '+' : isTransfer ? '↔ ' : '−'}

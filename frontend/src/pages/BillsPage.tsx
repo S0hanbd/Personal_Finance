@@ -91,7 +91,7 @@ function PayBillModal({ occurrence, onClose }: PayBillModalProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
@@ -184,7 +184,7 @@ function PayBillModal({ occurrence, onClose }: PayBillModalProps) {
             <button
               type="submit"
               disabled={payMutation.isPending}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition shadow-sm"
+              className="rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {payMutation.isPending ? 'Processing…' : 'Confirm & Deduct Balance'}
             </button>
@@ -282,7 +282,7 @@ function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <h2 id="new-bill-title" className="text-base font-semibold text-foreground">
             Configure Recurring Bill
@@ -434,7 +434,7 @@ function NewBillModal({ isOpen, onClose }: NewBillModalProps) {
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition shadow-sm"
+              className="rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {createMutation.isPending ? 'Saving…' : 'Save Recurring Bill'}
             </button>
@@ -476,7 +476,7 @@ export function BillsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Recurring Bills & Fixed Expenses</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-navy">Recurring Bills & Fixed Expenses</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Track fixed monthly commitments, utilities, and rent with automatic occurrence management
           </p>
@@ -484,7 +484,7 @@ export function BillsPage() {
         <button
           type="button"
           onClick={() => setIsNewBillOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white shadow transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 active:scale-95"
         >
           <Plus className="h-4 w-4" />
           <span>New Recurring Bill</span>
@@ -493,9 +493,9 @@ export function BillsPage() {
 
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-white p-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unpaid This Month</p>
-          <p className="text-2xl font-bold tracking-tight text-amber-600 tabular-nums mt-1">
+          <p className="text-2xl font-bold tracking-tight text-warning tabular-nums mt-1">
             {formatMoney(unpaidTotal)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
@@ -503,15 +503,15 @@ export function BillsPage() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-white p-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Paid This Month</p>
-          <p className="text-2xl font-bold tracking-tight text-emerald-600 tabular-nums mt-1">
+          <p className="text-2xl font-bold tracking-tight text-success tabular-nums mt-1">
             {formatMoney(paidTotal)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">Already deducted from balances</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-white p-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Bill Rules</p>
           <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums mt-1">
             {billRules.length}
@@ -559,13 +559,13 @@ export function BillsPage() {
               <button
                 type="button"
                 onClick={() => refetchMonth()}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Retry
               </button>
             </div>
           ) : monthLoading ? (
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4 animate-pulse">
+            <div className="rounded-xl border border-border bg-white p-6 space-y-4 animate-pulse">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex justify-between py-2 border-b border-border/40">
                   <div className="h-4 w-32 bg-muted rounded" />
@@ -574,7 +574,7 @@ export function BillsPage() {
               ))}
             </div>
           ) : occurrences.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center shadow-sm">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-white p-12 text-center">
               <CalendarClock className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
               <h3 className="text-sm font-semibold text-foreground">No bills for this month</h3>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm">
@@ -583,14 +583,14 @@ export function BillsPage() {
               <button
                 type="button"
                 onClick={() => setIsNewBillOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add First Recurring Bill
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-border bg-white overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -630,15 +630,15 @@ export function BillsPage() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             {isPaid ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-success/10 border border-success/20 px-2 py-0.5 text-[11px] font-medium text-success">
                                 <CheckCircle2 className="h-3 w-3" /> Paid
                               </span>
                             ) : isOverdue ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[11px] font-medium text-rose-700">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 border border-danger/20 px-2 py-0.5 text-[11px] font-medium text-danger">
                                 <AlertTriangle className="h-3 w-3" /> Overdue
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/20 px-2 py-0.5 text-[11px] font-medium text-warning">
                                 <Clock className="h-3 w-3" /> Unpaid
                               </span>
                             )}
@@ -650,7 +650,7 @@ export function BillsPage() {
                               <button
                                 type="button"
                                 onClick={() => setSelectedOccurrence(occ)}
-                                className="rounded-lg bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-1 text-[11px] font-semibold text-white hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
                               >
                                 Mark as Paid
                               </button>
@@ -680,13 +680,13 @@ export function BillsPage() {
               <button
                 type="button"
                 onClick={() => refetchRules()}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Retry
               </button>
             </div>
           ) : rulesLoading ? (
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4 animate-pulse">
+            <div className="rounded-xl border border-border bg-white p-6 space-y-4 animate-pulse">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex justify-between py-2 border-b border-border/40">
                   <div className="h-4 w-32 bg-muted rounded" />
@@ -695,18 +695,18 @@ export function BillsPage() {
               ))}
             </div>
           ) : billRules.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center shadow-sm">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-white p-12 text-center">
               <p className="text-sm font-semibold text-foreground">No recurring bill rules configured</p>
               <button
                 type="button"
                 onClick={() => setIsNewBillOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Bill Rule
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-border bg-white overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -732,7 +732,7 @@ export function BillsPage() {
                         <td className="px-4 py-3 text-muted-foreground">{rule.category_name || '—'}</td>
                         <td className="px-4 py-3 text-muted-foreground">{rule.preferred_account_name || '—'}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="inline-flex rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700 capitalize">
+                          <span className="inline-flex rounded-full bg-success/10 border border-success/20 px-2 py-0.5 text-[11px] font-medium text-success capitalize">
                             {rule.status}
                           </span>
                         </td>

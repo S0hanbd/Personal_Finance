@@ -103,7 +103,7 @@ function PeoplePageContent(props: ContentProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">People & Loans</h1>
+          <h1 className="text-2xl font-bold text-navy">People & Loans</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Track money lent to and borrowed from others
           </p>
@@ -152,7 +152,7 @@ function PeoplePageContent(props: ContentProps) {
       </div>
 
       {/* Person Directory */}
-      <div className="rounded-xl border border-border bg-card">
+      <div className="rounded-xl border border-border bg-white">
         <div className="p-4 border-b border-border">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
@@ -229,7 +229,7 @@ function PeoplePageContent(props: ContentProps) {
 
       {/* Active Loans */}
       {loans.length > 0 && (
-        <div className="rounded-xl border border-border bg-card">
+        <div className="rounded-xl border border-border bg-white">
           <div className="p-4 border-b border-border">
             <h2 className="text-base font-semibold text-foreground">Active Loans</h2>
           </div>
@@ -347,7 +347,7 @@ function SummaryCard({
   bgColor: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-white p-4">
       <div className="flex items-center gap-3">
         <div className={cn('rounded-lg p-2', bgColor)}>
           <Icon className={cn('h-5 w-5', color)} />
@@ -432,7 +432,7 @@ function LendBorrowModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
+        className="relative w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -653,7 +653,7 @@ function SettleModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
+        className="relative w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-border">

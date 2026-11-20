@@ -38,7 +38,7 @@ function ProgressBar({ percent, value, max }: {
   const colorClass = isOver
     ? 'bg-destructive'
     : isAmber
-      ? 'bg-amber-500'
+      ? 'bg-warning/100'
       : 'bg-success'
 
   return (
@@ -50,7 +50,7 @@ function ProgressBar({ percent, value, max }: {
         <span className={cn(
           'font-medium tabular-nums',
           isOver && 'text-destructive',
-          isAmber && 'text-amber-600',
+          isAmber && 'text-warning',
         )}>
           {percent.toFixed(0)}%
         </span>
@@ -100,7 +100,7 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <FolderPlus className="h-5 w-5 text-primary" />
@@ -159,7 +159,7 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={createProject.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition"
+              className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {createProject.isPending ? 'Creating...' : 'Create Project'}
             </button>
@@ -222,7 +222,7 @@ function AddItemModal({ projectId, onClose }: {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <h2 id="add-item-title" className="text-base font-semibold text-foreground">
             Add Planning Item
@@ -274,7 +274,7 @@ function AddItemModal({ projectId, onClose }: {
               )}
             </div>
             {isExpression && previewValue && (
-              <p className="mt-1 text-xs text-blue-600" aria-live="polite">
+              <p className="mt-1 text-xs text-primary" aria-live="polite">
                 Total {formatMoney(previewValue)}
               </p>
             )}
@@ -306,7 +306,7 @@ function AddItemModal({ projectId, onClose }: {
             <button
               type="submit"
               disabled={createItem.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition"
+              className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {createItem.isPending ? 'Adding...' : 'Add Item'}
             </button>
@@ -364,7 +364,7 @@ function EditItemModal({ projectId, item, onClose }: {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <h2 id="edit-item-title" className="text-base font-semibold text-foreground">
             Edit Item
@@ -414,7 +414,7 @@ function EditItemModal({ projectId, item, onClose }: {
               )}
             </div>
             {isExpression && previewValue && (
-              <p className="mt-1 text-xs text-blue-600" aria-live="polite">
+              <p className="mt-1 text-xs text-primary" aria-live="polite">
                 Total {formatMoney(previewValue)}
               </p>
             )}
@@ -445,7 +445,7 @@ function EditItemModal({ projectId, item, onClose }: {
             <button
               type="submit"
               disabled={updateItem.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition"
+              className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {updateItem.isPending ? 'Saving...' : 'Save Changes'}
             </button>
@@ -535,19 +535,19 @@ function ProjectDetailView({ projectId, onBack }: {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-white p-4">
           <p className="text-xs text-muted-foreground mb-1">Total Estimated</p>
           <p className="text-lg font-bold text-foreground tabular-nums">
             {formatMoney(project.total_estimated)}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-white p-4">
           <p className="text-xs text-muted-foreground mb-1">Total Spent</p>
           <p className="text-lg font-bold text-foreground tabular-nums">
             {formatMoney(project.total_spent)}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-white p-4">
           <p className="text-xs text-muted-foreground mb-1">Remaining</p>
           <p className={cn(
             'text-lg font-bold tabular-nums',
@@ -556,7 +556,7 @@ function ProjectDetailView({ projectId, onBack }: {
             {formatMoney(remaining)}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-border bg-white p-4">
           <p className="text-xs text-muted-foreground mb-1">% Complete</p>
           <p className="text-lg font-bold text-foreground tabular-nums">
             {percentComplete.toFixed(1)}%
@@ -565,12 +565,12 @@ function ProjectDetailView({ projectId, onBack }: {
       </div>
 
       {/* Items Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-sm font-semibold text-foreground">Planning Items</h3>
           <button
             onClick={() => setShowAddItem(true)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-white hover:opacity-90 transition"
           >
             <Plus className="h-3 w-3" />
             Add Item
@@ -698,14 +698,14 @@ export function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Projects</h2>
+          <h2 className="text-xl font-bold text-navy">Projects</h2>
           <p className="text-sm text-muted-foreground">
             Plan and track expenses for your projects
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-white hover:opacity-90 transition"
         >
           <Plus className="h-4 w-4" />
           New Project
@@ -715,25 +715,25 @@ export function ProjectsPage() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-white p-4">
             <p className="text-xs text-muted-foreground mb-1">Projects</p>
             <p className="text-lg font-bold text-foreground tabular-nums">
               {summary.project_count}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-white p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Estimated</p>
             <p className="text-lg font-bold text-foreground tabular-nums">
               {formatMoney(summary.total_estimated)}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-white p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Spent</p>
             <p className="text-lg font-bold text-foreground tabular-nums">
               {formatMoney(summary.total_spent)}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-white p-4">
             <p className="text-xs text-muted-foreground mb-1">Remaining</p>
             <p className={cn(
               'text-lg font-bold tabular-nums',
@@ -771,7 +771,7 @@ export function ProjectsPage() {
           ))}
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-white p-12 text-center">
           <FolderOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-base font-semibold text-foreground mb-1">
             No projects yet
@@ -781,7 +781,7 @@ export function ProjectsPage() {
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky text-white hover:opacity-90 transition"
           >
             <Plus className="h-4 w-4" />
             Create Project
@@ -793,7 +793,7 @@ export function ProjectsPage() {
             <button
               key={project.id}
               onClick={() => setSelectedProjectId(project.id)}
-              className="text-left rounded-xl border border-border bg-card p-5 hover:border-primary/50 hover:shadow-sm transition group"
+              className="text-left rounded-xl border border-border bg-white p-5 hover:border-primary/50 hover:shadow-sm transition group"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">

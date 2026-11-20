@@ -25,10 +25,10 @@ import type { FinancialObligation, ObligationPriority } from '@/types'
 
 // ── Priority badges configuration ─────────────────────────────────────────────
 const PRIORITY_BADGES: Record<ObligationPriority, { label: string; bg: string; text: string }> = {
-  urgent: { label: 'Urgent', bg: 'bg-rose-50 border-rose-200', text: 'text-rose-700' },
-  high: { label: 'High', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700' },
-  medium: { label: 'Medium', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
-  low: { label: 'Low', bg: 'bg-slate-100 border-slate-200', text: 'text-slate-700' },
+  urgent: { label: 'Urgent', bg: 'bg-danger/10 border-danger/20', text: 'text-danger' },
+  high: { label: 'High', bg: 'bg-warning/10 border-warning/20', text: 'text-warning' },
+  medium: { label: 'Medium', bg: 'bg-primary/10 border-primary/20', text: 'text-primary' },
+  low: { label: 'Low', bg: 'bg-muted border-border', text: 'text-foreground' },
 }
 
 function getDaysRemaining(dueDateStr: string): string {
@@ -97,7 +97,7 @@ function PayObligationModal({ obligation, onClose }: PayModalProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
@@ -190,7 +190,7 @@ function PayObligationModal({ obligation, onClose }: PayModalProps) {
             <button
               type="submit"
               disabled={payMutation.isPending}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition shadow-sm"
+              className="rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {payMutation.isPending ? 'Processing…' : 'Confirm & Deduct Balance'}
             </button>
@@ -281,7 +281,7 @@ function NewObligationModal({ isOpen, onClose }: NewObligationModalProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <h2 id="new-ob-title" className="text-base font-semibold text-foreground">
             Add Future Financial Obligation
@@ -428,7 +428,7 @@ function NewObligationModal({ isOpen, onClose }: NewObligationModalProps) {
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition shadow-sm"
+              className="rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition"
             >
               {createMutation.isPending ? 'Saving…' : 'Save Obligation'}
             </button>
@@ -463,7 +463,7 @@ export function ObligationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Future Financial Obligations</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-navy">Future Financial Obligations</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Manage semester fees, examination costs, and large upcoming commitments separate from monthly bills
           </p>
@@ -471,7 +471,7 @@ export function ObligationsPage() {
         <button
           type="button"
           onClick={() => setIsNewObligationOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white shadow transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 active:scale-95"
         >
           <Plus className="h-4 w-4" />
           <span>New Obligation</span>
@@ -480,7 +480,7 @@ export function ObligationsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-white p-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Total Pending Obligations
           </p>
@@ -492,17 +492,17 @@ export function ObligationsPage() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-white p-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Total Settled (Paid)
           </p>
-          <p className="text-2xl font-bold tracking-tight text-emerald-600 tabular-nums mt-1">
+          <p className="text-2xl font-bold tracking-tight text-success tabular-nums mt-1">
             {formatMoney(totalPaid)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">Settled obligations</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between">
+        <div className="rounded-xl border border-border bg-white p-5 flex flex-col justify-between">
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Status Filter
@@ -520,7 +520,7 @@ export function ObligationsPage() {
                   onClick={() => setStatusFilter(opt.value)}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     statusFilter === opt.value
-                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      ? 'bg-primary text-primary-foreground'
                       : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
@@ -543,13 +543,13 @@ export function ObligationsPage() {
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Retry
           </button>
         </div>
       ) : isLoading ? (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4 animate-pulse">
+        <div className="rounded-xl border border-border bg-white p-6 space-y-4 animate-pulse">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex justify-between py-2 border-b border-border/40">
               <div className="h-4 w-36 bg-muted rounded" />
@@ -558,7 +558,7 @@ export function ObligationsPage() {
           ))}
         </div>
       ) : obligations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center shadow-sm">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-white p-12 text-center">
           <CalendarDays className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
           <h3 className="text-sm font-semibold text-foreground">No financial obligations found</h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm">
@@ -567,13 +567,13 @@ export function ObligationsPage() {
           <button
             type="button"
             onClick={() => setIsNewObligationOpen(true)}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition"
           >
             <Plus className="h-3.5 w-3.5" /> Add First Obligation
           </button>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-border bg-white overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -610,7 +610,7 @@ export function ObligationsPage() {
                         {!isPaid && (
                           <p
                             className={`text-[10px] font-medium ${
-                              isOverdue ? 'text-rose-600 font-semibold' : 'text-muted-foreground'
+                              isOverdue ? 'text-danger font-semibold' : 'text-muted-foreground'
                             }`}
                           >
                             {timeline}
@@ -629,15 +629,15 @@ export function ObligationsPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         {isPaid ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-success/10 border border-success/20 px-2 py-0.5 text-[11px] font-medium text-success">
                             <CheckCircle2 className="h-3 w-3" /> Paid
                           </span>
                         ) : isOverdue ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[11px] font-medium text-rose-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 border border-danger/20 px-2 py-0.5 text-[11px] font-medium text-danger">
                             <AlertTriangle className="h-3 w-3" /> Overdue
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/20 px-2 py-0.5 text-[11px] font-medium text-warning">
                             <Clock className="h-3 w-3" /> Pending
                           </span>
                         )}
@@ -649,7 +649,7 @@ export function ObligationsPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedObligation(ob)}
-                            className="rounded-lg bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            className="rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-1 text-[11px] font-semibold text-white hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
                           >
                             Mark Paid
                           </button>

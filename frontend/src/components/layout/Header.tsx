@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, LogOut, User as UserIcon, ChevronRight } from 'lucide-react'
+import { Plus, LogOut, User as UserIcon, ChevronRight, Menu } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { QuickAddModal } from '@/components/transactions/QuickAddModal'
 
@@ -55,7 +55,7 @@ interface HeaderProps {
   onToggleMobileNav?: () => void
 }
 
-export function Header({ onQuickAdd }: HeaderProps) {
+export function Header({ onQuickAdd, onToggleMobileNav }: HeaderProps) {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const { user, logout } = useAuth()
 
@@ -69,32 +69,45 @@ export function Header({ onQuickAdd }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3.5">
+      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-lavender px-4 sm:px-6 lg:px-8 py-3.5">
         <Breadcrumbs />
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
-              Personal Finance Management
-            </h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              {user ? `Signed in as ${user.username}` : 'Track your income, bills and balances in real time'}
-            </p>
+          <div className="flex items-center gap-3">
+            {/* Mobile hamburger button */}
+            {onToggleMobileNav && (
+              <button
+                onClick={onToggleMobileNav}
+                className="lg:hidden p-2 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Open navigation menu"
+              >
+                <Menu size={20} />
+              </button>
+            )}
+            <div>
+              <h1 className="text-base sm:text-lg font-bold text-navy tracking-tight">
+                Personal Finance Management
+              </h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">
+                {user ? `Signed in as ${user.username}` : 'Track your income, bills and balances in real time'}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Quick Add CTA Button */}
             <button
               onClick={handleQuickAddClick}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm hover:bg-primary/90 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-electric-blue to-electric-sky text-white text-xs sm:text-sm font-semibold rounded-lg hover:opacity-90 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
             >
               <Plus size={16} />
-              <span>Record Transaction</span>
+              <span className="hidden sm:inline">Record Transaction</span>
+              <span className="sm:hidden">Add</span>
             </button>
 
             {/* User profile / logout */}
             {user && (
               <div className="flex items-center gap-2 pl-2 border-l border-border">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-primary" title={user.email}>
+                <div className="w-8 h-8 rounded-full bg-lavender/50 flex items-center justify-center text-xs font-bold text-navy" title={user.email}>
                   <UserIcon size={16} />
                 </div>
                 <button

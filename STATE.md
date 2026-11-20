@@ -15,7 +15,7 @@
 * **Backend:** Django 5 + Django REST Framework + PostgreSQL / SQLite (for local checks)
 * **Git Remote:** `https://github.com/S0hanbd/Personal_Finance.git` (tracked on `main`)
 * **Mandatory Rule:** At the end of every session, commit all changes, update STATE.md, and push to `git push origin main`.
-* **Git Status:** Clean, all commits synced with `origin/main`. Branch `audit/acid-compliance` merged and deleted.
+* **Git Status:** Uncommitted changes on `ui-redesign` branch (Phase 2 design system + Phase 4 dashboard redesign).
 
 ### Windows Environment Execution Commands
 > [!IMPORTANT]
@@ -27,6 +27,7 @@
   - Python venv is at `backend/venv`
   - System check: `.\venv\Scripts\python.exe manage.py check`
   - Migrations: `.\venv\Scripts\python.exe manage.py migrate`
+  - Dev server: `.\venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000`
   - Unit tests: `.\venv\Scripts\python.exe -m pytest`
   - Linter: `.\venv\Scripts\python.exe -m ruff check .`
 
@@ -47,6 +48,7 @@
 | **Phase 8** | Production Hardening, Security Audit & Closed-Loop QA | **COMPLETED & VERIFIED** |
 | **Phase 9** | Export & Reporting | **COMPLETED & VERIFIED** |
 | **Phase 10** | Transaction Editing, Profile Management & Dashboard Settings | **IN PROGRESS** (Step 1–2 done, Step 3 pending) |
+| **Phase 4 (UI)** | Dashboard Redesign — KPI cards, analytics charts, layout | **COMPLETED & VERIFIED** |
 
 ---
 
@@ -101,6 +103,7 @@ frontend/src/
     shared/                   — EmptyState, ErrorState, SummaryCard, KeyboardShortcutsHelp, ExportButton
     transactions/             — QuickAddModal (hooks wrapper + content pattern)
     analytics/                — PeriodSelector, 6 Recharts chart components
+    dashboard/                — DashboardOverviewChart, SpendingBreakdownChart, CashFlowTrendChart
     reports/                  — ReportOptionsModal
     settings/                 — ProfileSettings, PasswordSettings, DashboardSettings, NavigationSettings
 
@@ -292,3 +295,54 @@ frontend/src/
 2. `src/pages/TransactionsPage.tsx` — Add edit button and edit modal (24-hour window check).
 3. `src/components/layout/Sidebar.tsx` — Read from settingsStore to filter/order nav items.
 4. `src/pages/DashboardPage.tsx` — Read from settingsStore to conditionally render SummaryCards.
+
+---
+
+## 5. Build & Launch Verification Session (2026-11-20)
+
+**Task:** Build and launch the application locally. No source files were modified.
+
+### Environment (confirmed)
+* Python 3.14.0 · Django 5.1.3 · DRF 3.15.2 (venv: `backend/venv`)
+* Node v24.18.0 · pnpm 12.18.0
+* `backend/.env` → SQLite (`db.sqlite3`), DEBUG=True, CORS `http://localhost:5173`
+* `backend/db.sqlite3` present, all migrations applied (`No migrations to apply`)
+
+### Verification Results (all observed, not assumed)
+| Gate | Command | Result |
+|---|---|---|
+| Django check | `backend\venv\Scripts\python.exe manage.py check` | Pass — 0 issues |
+| Migrations | `manage.py migrate --noinput` | Pass — no pending |
+| Build | `pnpm.cmd run build` (tsc --noEmit + vite) | Pass — exit 0, 2352 modules |
+| Lint | `pnpm.cmd lint` | Pass — exit 0 |
+| Tests | `pnpm.cmd test` | Pass — 5/5 (1 file) |
+
+### Live Runtime QA
+* Backend: `http://127.0.0.1:8000` (runserver, `--noreload`) — listening
+* Frontend: `http://127.0.0.1:5173` (Vite dev) — listening, HTTP 200
+* `/api/auth/me/` unauthenticated → **401** (auth enforced server-side ✓)
+* Registration POST → **201** with access/refresh JWT ✓
+* UI login → `/dashboard`, all KPI cards, 3 Recharts panels, empty states render ✓
+* **All 11 authenticated routes** visited, every XHR returned **200**, **zero console errors**:
+  `/dashboard` `/transactions` `/accounts` `/budget` `/planned-spending` `/bills`
+  `/obligations` `/people` `/projects` `/analytics` `/settings`
+* Analytics: all 6 aggregation endpoints 200
+* Settings: `/api/auth/profile/` + `/api/auth/settings/` 200, 4 tabs (Profile/Password/Dashboard/Navigation) render
+* Responsive: 375px, 768px, 1280px — **no horizontal overflow**, no wide elements
+* Only console output: React Router v7 future-flag warning (informational, not an error)
+
+### Launch Commands (Windows)
+```powershell
+# Backend
+cd backend
+.\venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+
+# Frontend (separate terminal)
+cd frontend
+pnpm.cmd run dev --host 127.0.0.1 --port 5173
+```
+
+### Notes
+* Scratch verification files (`.check*.txt`, `.final*.txt`, etc.) and the throwaway `verify.run@example.com` test user were removed. DB user count restored to 2.
+* Pending Phase 10 Step 3 (frontend integration) is **unchanged** — see above.
+* Pre-existing uncommitted `ui-redesign` branch work (25 files) was left untouched by this session.

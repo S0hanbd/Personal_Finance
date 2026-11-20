@@ -35,7 +35,7 @@ interface ChartCardProps {
 
 function ChartCard({ title, children }: ChartCardProps) {
   return (
-    <div className="bg-white rounded-lg p-5 shadow-sm border border-border">
+    <div className="bg-white rounded-lg p-5 border border-border">
       <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>
       {children}
     </div>
@@ -88,7 +88,7 @@ function AnalyticsPageContent({
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-foreground">Financial Analytics</h1>
+          <h1 className="text-2xl font-bold text-navy">Financial Analytics</h1>
           <ExportButton
             options={[
               {

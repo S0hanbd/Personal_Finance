@@ -23,23 +23,23 @@ const TYPE_LABELS: Record<TransactionType, string> = {
 }
 
 const TYPE_COLORS: Record<TransactionType, string> = {
-  income: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  expense: 'bg-rose-50 text-rose-700 border-rose-200',
-  transfer: 'bg-blue-50 text-blue-700 border-blue-200',
-  lending: 'bg-amber-50 text-amber-700 border-amber-200',
-  borrowing: 'bg-amber-50 text-amber-700 border-amber-200',
-  loan_repayment: 'bg-slate-100 text-slate-700 border-slate-200',
-  loan_collection: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  held_money: 'bg-slate-100 text-slate-700 border-slate-200',
-  return_held: 'bg-slate-100 text-slate-700 border-slate-200',
+  income: 'bg-success/10 text-success border-success/20',
+  expense: 'bg-danger/10 text-danger border-danger/20',
+  transfer: 'bg-primary/10 text-primary border-primary/20',
+  lending: 'bg-warning/10 text-warning border-warning/20',
+  borrowing: 'bg-warning/10 text-warning border-warning/20',
+  loan_repayment: 'bg-muted text-foreground border-border',
+  loan_collection: 'bg-success/10 text-success border-success/20',
+  held_money: 'bg-muted text-foreground border-border',
+  return_held: 'bg-muted text-foreground border-border',
 }
 
 function amountColor(type: TransactionType): string {
   const credit: TransactionType[] = ['income', 'borrowing', 'loan_collection', 'return_held']
   const debit: TransactionType[] = ['expense', 'lending', 'loan_repayment', 'held_money']
-  if (credit.includes(type)) return 'text-emerald-600'
-  if (debit.includes(type)) return 'text-rose-600'
-  return 'text-slate-800'
+  if (credit.includes(type)) return 'text-success'
+  if (debit.includes(type)) return 'text-danger'
+  return 'text-foreground'
 }
 
 function amountSign(type: TransactionType): string {
@@ -85,9 +85,9 @@ function DeleteDialog({ transaction, onConfirm, onCancel, isPending }: DeleteDia
         onClick={onCancel}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger/10 text-danger">
             <Trash2 className="h-5 w-5" />
           </div>
           <div>
@@ -118,7 +118,7 @@ function DeleteDialog({ transaction, onConfirm, onCancel, isPending }: DeleteDia
             type="button"
             onClick={onConfirm}
             disabled={isPending}
-            className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:opacity-50"
+            className="rounded-lg bg-danger px-4 py-2 text-xs font-semibold text-white transition hover:bg-danger/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:opacity-50"
           >
             {isPending ? 'Deleting…' : 'Confirm Delete'}
           </button>
@@ -152,7 +152,7 @@ function FilterBar({ filters, onFilterChange, onClear, accounts, hasActiveFilter
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+    <div className="rounded-xl border border-border bg-white p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Search */}
         <div>
@@ -316,7 +316,7 @@ export function TransactionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Transactions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-navy">Transactions</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Audit trail of all income, expenses, and ledger transfers
           </p>
@@ -340,7 +340,7 @@ export function TransactionsPage() {
           <button
             type="button"
             onClick={() => setIsQuickAddOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-electric-blue to-electric-sky px-4 py-2 text-xs font-semibold text-white shadow transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 active:scale-95"
           >
             <Plus className="h-4 w-4" />
             <span>Record Transaction</span>
@@ -371,14 +371,14 @@ export function TransactionsPage() {
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Retry
           </button>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-border bg-white overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -424,7 +424,7 @@ export function TransactionsPage() {
                           <button
                             type="button"
                             onClick={() => setIsQuickAddOpen(true)}
-                            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition shadow-sm"
+                            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-electric-blue to-electric-sky px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition"
                           >
                             <Plus className="h-3.5 w-3.5" />
                             Record First Transaction
@@ -437,7 +437,7 @@ export function TransactionsPage() {
                   transactions.map((tx) => {
                     const color = amountColor(tx.transaction_type)
                     const sign = amountSign(tx.transaction_type)
-                    const badgeClass = TYPE_COLORS[tx.transaction_type] ?? 'bg-slate-100 text-slate-700 border-slate-200'
+                    const badgeClass = TYPE_COLORS[tx.transaction_type] ?? 'bg-muted text-foreground border-border'
                     const categoryOrSource = tx.category_name ?? tx.income_source_name ?? '—'
 
                     return (
@@ -474,7 +474,7 @@ export function TransactionsPage() {
                             onClick={() => setPendingDeleteId(tx.id)}
                             title="Delete transaction"
                             aria-label={`Delete transaction of ${formatMoney(tx.amount)} on ${tx.transaction_date}`}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-rose-50 hover:text-rose-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-danger/10 hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -489,7 +489,7 @@ export function TransactionsPage() {
 
           {/* Pagination Footer */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs text-muted-foreground bg-card">
+            <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs text-muted-foreground bg-white">
               <span>
                 Showing {transactions.length} of {totalCount} transactions
               </span>
