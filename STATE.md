@@ -346,3 +346,21 @@ pnpm.cmd run dev --host 127.0.0.1 --port 5173
 * Scratch verification files (`.check*.txt`, `.final*.txt`, etc.) and the throwaway `verify.run@example.com` test user were removed. DB user count restored to 2.
 * Pending Phase 10 Step 3 (frontend integration) is **unchanged** — see above.
 * Pre-existing uncommitted `ui-redesign` branch work (25 files) was left untouched by this session.
+
+---
+
+## 6. One-Click Launcher & Mandatory Authentication Session (2026-11-22)
+
+**Tasks:**
+1. Created `run.bat` for 1-click Windows startup (checks Python venv & pnpm, runs migrations, launches Django & Vite in separate titled console windows, and opens the frontend UI at `http://localhost:5173/` in default browser).
+2. Created `stop.bat` for 1-click server shutdown on ports 8000 and 5173.
+3. Implemented mandatory client-side login guards (`ProtectedRoute`, `PublicRoute`, and `RootRoute`) in `frontend/src/router/index.tsx`, ensuring unauthenticated users are forced to `/login` and redirecting back to `from` upon login.
+
+### Verification Results
+* Django system check: `backend\venv\Scripts\python.exe manage.py check` (Pass — 0 issues)
+* Backend pytest: `.\venv\Scripts\python.exe -m pytest` (107/107 passed)
+* Backend ruff: `.\venv\Scripts\python.exe -m ruff check .` (Pass — 0 issues)
+* Frontend typecheck: `pnpm.cmd typecheck` (Pass — 0 errors)
+* Frontend lint: `pnpm.cmd lint` (Pass — 0 errors)
+* Frontend vitest: `pnpm.cmd test -- --run` (5/5 passed)
+* Frontend build: `pnpm.cmd run build` (Pass — exit 0)

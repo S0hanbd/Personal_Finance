@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { APP_NAME } from '@/lib/constants'
 
@@ -10,6 +10,8 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/dashboard'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,7 +19,7 @@ export function LoginPage() {
     setIsLoading(true)
     try {
       await login({ username, password })
-      navigate('/dashboard')
+      navigate(from, { replace: true })
     } catch {
       setError('Invalid username or password. Please check your credentials and try again.')
     } finally {
